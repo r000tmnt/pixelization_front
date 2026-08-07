@@ -6,7 +6,7 @@
         v-for="size in pixelSize"
         :key="size.value"
         :variant="data.pixelSize === size.value ? 'success' : 'secondary'"
-        @click="() => { setPixelSize(size.value) }">
+        @click="() => setPixelSize(size.value)">
         {{ size.text }}
       </BButton>
     </BButtonGroup>
@@ -20,17 +20,12 @@
     />
   </template>
   <template v-else>
-    <input type="file" ref="bform" style="display: none;" @change="(e) => {
+    <input type="file" id="invisibleInput" style="display: none;" @change="(e) => {
       file = (e.target as HTMLInputElement).files?.[0] || null
     }" />
     <canvas id="myCanvas"
       :style="{'height': `${editMode ? 'auto' : '0px'}`}"
-      @click="() => {
-        // console.log(bform.value)
-        if(bform && bform.value) {
-          bform.value.click()
-        }
-      }"
+      @click="() => onCanvasClick()"
     ></canvas>
   </template>
 </template>
@@ -49,8 +44,6 @@
     { value: 8, text: '8X' },
     // { value: 32, text: '32X' }
   ])
-
-  const bform = ref<HTMLFormElement | null>(null)
 
   const data = ref({
     pixelSize: 4,
@@ -118,6 +111,10 @@
       }else{
         editMode.value = false
       }
+  }
+
+  const onCanvasClick = () => {
+    document.getElementById('invisibleInput')?.click();
   }
 
   watch(file, async(newFile) => {
