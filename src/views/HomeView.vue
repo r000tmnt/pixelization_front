@@ -10,6 +10,16 @@
         {{ size.text }}
       </BButton>
     </BButtonGroup>
+
+    <BButtonGroup aria-label="color-palette">
+      <BButton
+        v-for="palette in palettes"
+        :key="palette"
+        :variant="data.palette === palette ? 'success' : 'secondary'"
+        @click="() => setPalette(palette)">
+        {{ palette.toUpperCase() }}
+      </BButton>
+    </BButtonGroup>    
   </BCard>
 
   <template v-if="!editMode">
@@ -45,8 +55,13 @@
     // { value: 32, text: '32X' }
   ])
 
+  const palettes = ref([
+    'gameboy'
+  ])
+
   const data = ref({
     pixelSize: 4,
+    palette: 'original'
   })
 
   const file = ref<File | null>(null)
@@ -61,9 +76,18 @@
     }
   }
 
+  const setPalette = async(palette: string) => {
+    data.value.palette = palette
+
+    if(editMode.value && file){
+      await convertAndDraw(file.value as File)
+    }
+  }
+
   const convertAndDraw = async(newFile: File) => {
       const form = new FormData()
       form.append('pixelSize', String(data.value.pixelSize))
+      form.append('palette', data.value.palette)
       form.append('file', newFile)
 
       const result = await convert(form)
