@@ -1,18 +1,54 @@
 <template>
-  <!-- <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p> -->
-  <BApp>
-    <router-view />
-  </BApp>
+  <router-view />
 </template>
 
-<script setup lang="ts">
-  import {BApp} from 'bootstrap-vue-next'
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Pixelify+Sans:wght@400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-  // console.log(import.meta.env)
-</script>
-
-<style scoped></style>
+:root {
+  --px-ink: #0b0a13;
+  --px-surface: #151326;
+  --px-surface-raised: #201d36;
+  --px-grid: #373252;
+  --px-violet: #9d5cff;
+  --px-violet-bright: #b98cff;
+  --px-azure: #38bdf8;
+  --px-azure-bright: #7dd3fc;
+  --px-text: #f5f3ff;
+  --px-text-muted: #b7b0cc;
+  --px-success: #a3e635;
+  --px-danger: #fb7185;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-ui: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --radius-sm: 8px;
+  --shadow-glow: 0 0 24px rgb(157 92 255 / 18%);
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  background: var(--px-ink);
+}
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--px-ink);
+  color: var(--px-text);
+  font-family: var(--font-ui);
+}
+button,
+input {
+  font: inherit;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>
