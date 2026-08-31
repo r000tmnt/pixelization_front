@@ -54,7 +54,13 @@
 
         <div>
           <label>Change dithering level</label>
-          <input type="range" v-model="ditherStrength" min="0" max="1" step="0.05" @change="changeDitherStrength" />
+          <input
+            type="range"
+            v-model="ditherStrength"
+            min="0" max="1" step="0.05"
+            @change="changeDitherStrength"
+            :disabled="selectedPalette === 'original'"
+            />
         </div>
       </section>
 
