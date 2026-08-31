@@ -33,7 +33,8 @@ export const usePixelizationStore = defineStore('pixelization', {
     ] as Palette[],
     selectedSize: 4,
     selectedPalette: 'original',
-    ditherStrength: 0.35
+    ditherStrength: 0.35,
+    sizeLimitMB: 5
   }),
   getters: {
     activePalette: (state) =>
