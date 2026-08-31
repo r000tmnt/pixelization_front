@@ -51,6 +51,26 @@
             ><span>{{ palette.name }}</span>
           </button>
         </div>
+      </section>
+
+      <section class="tool-section" aria-labelledby="pixel-size-title">
+        <div class="section-heading">
+          <p id="pixel-size-title" class="tool-label">Dithering style</p>
+          <output>{{ selectedSize }}×</output>
+        </div>
+        <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
+          <button
+            v-for="style in ditheringStyle"
+            :key="style.id"
+            type="button"
+            role="radio"
+            :aria-checked="selectedStyle === style.id"
+            :class="{ active: selectedStyle === style.id }"
+            @click="changeDitheringStyle(style.id)"
+          >
+            {{ style.name }}
+          </button>
+        </div>
 
         <div>
           <label>Change dithering level</label>
@@ -107,7 +127,9 @@ const {
   pixelSizes,
   selectedPalette,
   selectedSize,
-  ditherStrength
+  selectedStyle,
+  ditherStrength,
+  ditheringStyle
 } = storeToRefs(settings)
 
 function changePixelSize(size: number) {
@@ -119,6 +141,12 @@ function changePixelSize(size: number) {
 function changePalette(palette: string) {
   if (selectedPalette.value === palette) return
   settings.setPalette(palette)
+  emit('settings-changed')
+}
+
+const changeDitheringStyle = (style: string) => {
+  if (selectedStyle.value === style) return
+  settings.setDitherStyle(style)
   emit('settings-changed')
 }
 
