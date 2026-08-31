@@ -38,6 +38,7 @@
           <span class="upload-icon" aria-hidden="true">+</span
           ><strong>Drop an image here or choose a file.</strong
           ><small>PNG, JPG, WEBP, or GIF</small>
+          <small>{{ settings.sizeLimitMB }} MB MAX</small>
         </button>
         <div v-else class="canvas-wrap">
           <canvas ref="canvas" aria-label="Pixelized artwork" @click="openFilePicker"></canvas
@@ -79,25 +80,45 @@ const status = computed(() =>
         : { type: 'idle', label: 'AWAITING IMAGE' },
 )
 
-function openFilePicker() {
+const openFilePicker = () => {
   fileInput.value?.click()
 }
-function handleFileInput(event: Event) {
+
+const checkFileSize = (file: File | undefined) => {
+    const size = file?.size
+  if (!file || !size){
+    errorMessage.value = 'File not found.'
+    return false
+  }
+
+  // Check file size
+  //  bytes/(1024*1024)
+  const mb = size/(1024*1024)
+  if(mb <= settings.sizeLimitMB) {
+    void processFile(file)
+    return true
+  }else{
+    errorMessage.value = 'File size limit exceeded.'
+    return false
+  }
+}
+
+const handleFileInput = (event: Event) => {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file) void processFile(file)
-  input.value = ''
+  const valid = checkFileSize(input.files?.[0])
+  if(valid) input.value = ''
 }
-function handleDrop(event: DragEvent) {
+
+const handleDrop = (event: DragEvent) => {
   isDragging.value = false
-  const file = event.dataTransfer?.files[0]
-  if (file) void processFile(file)
+  checkFileSize(event.dataTransfer?.files[0])
 }
-function reprocessArtwork() {
+
+const reprocessArtwork = () => {
   if (sourceFile.value) void processFile(sourceFile.value)
 }
 
-async function processFile(file: File) {
+const processFile = async(file: File) => {
   if (!file.type.startsWith('image/')) {
     errorMessage.value = 'Choose an image file to begin.'
     return
@@ -124,7 +145,8 @@ async function processFile(file: File) {
     isProcessing.value = false
   }
 }
-async function drawArtwork(dataUrl: string, width: number, height: number) {
+
+const drawArtwork = async(dataUrl: string, width: number, height: number) => {
   await nextTick()
   const target = canvas.value
   if (!target) throw new Error('Canvas unavailable')
@@ -141,7 +163,8 @@ async function drawArtwork(dataUrl: string, width: number, height: number) {
   context.imageSmoothingEnabled = false
   context.drawImage(image, 0, 0, width, height)
 }
-function downloadArtwork() {
+
+const downloadArtwork = () => {
   const target = canvas.value
   if (!target) return
   const link = document.createElement('a')
