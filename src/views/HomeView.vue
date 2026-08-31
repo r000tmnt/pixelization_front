@@ -130,6 +130,7 @@ const processFile = async(file: File) => {
   form.append('pixelSize', String(settings.selectedSize))
   form.append('palette', settings.selectedPalette)
   form.append('ditherStrength', String(settings.ditherStrength))
+  form.append('ditherStyle', String(settings.selectedStyle))
   form.append('file', file)
   try {
     const result = await pixelApi.convert(form)
