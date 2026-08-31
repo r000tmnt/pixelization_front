@@ -38,8 +38,19 @@ export const usePixelizationStore = defineStore('pixelization', {
     ] as Palette[],
     selectedSize: 4,
     selectedPalette: 'original',
+    selectedStyle: 'errorDiffusion',
     ditherStrength: 0.35,
-    sizeLimitMB: 5
+    sizeLimitMB: 5,
+    ditheringStyle: [
+      {
+        id: 'errorDiffusion',
+        name: "Error diffusion",
+      },
+      {
+        id: 'ordered',
+        name: "Ordered"
+      }
+    ]
   }),
   getters: {
     activePalette: (state) =>
@@ -54,6 +65,9 @@ export const usePixelizationStore = defineStore('pixelization', {
     },
     setDitherStrength(strength: number) {
       this.ditherStrength = strength
+    },
+    setDitherStyle(style: string) {
+      this.selectedStyle = style
     }
   },
 })
