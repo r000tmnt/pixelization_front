@@ -29,6 +29,11 @@ export const usePixelizationStore = defineStore('pixelization', {
         id: 'snes',
         name: 'SNES',
         colours: ['#2d5280', '#732866', '#f27961', '#b3b324'],
+      },
+      {
+        id: '1bit',
+        name: '1BIT',
+        colours: ['#000000', '#ffffff', '#f2796100', '#b3b32400'],
       }
     ] as Palette[],
     selectedSize: 4,
