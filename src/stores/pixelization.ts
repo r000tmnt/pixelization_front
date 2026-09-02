@@ -34,6 +34,11 @@ export const usePixelizationStore = defineStore('pixelization', {
         id: '1bit',
         name: '1BIT',
         colours: ['#000000', '#ffffff', '#f2796100', '#b3b32400'],
+      },
+      {
+        id: 'monochrome',
+        name: 'Monochrome',
+        colours: ['#000000', '#222222', '#444444', '#666666'],
       }
     ] as Palette[],
     acceptFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
