@@ -36,11 +36,7 @@ export const usePixelizationStore = defineStore('pixelization', {
         colours: ['#000000', '#ffffff', '#f2796100', '#b3b32400'],
       }
     ] as Palette[],
-    selectedSize: 4,
-    selectedPalette: 'original',
-    selectedStyle: 'errorDiffusion',
-    ditherStrength: 0.35,
-    sizeLimitMB: 5,
+    acceptFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
     ditheringStyle: [
       {
         id: 'errorDiffusion',
@@ -50,7 +46,12 @@ export const usePixelizationStore = defineStore('pixelization', {
         id: 'ordered',
         name: "Ordered"
       }
-    ]
+    ],
+    selectedSize: 4,
+    selectedPalette: 'original',
+    selectedStyle: 'errorDiffusion',
+    ditherStrength: 0.35,
+    sizeLimitMB: 5,
   }),
   getters: {
     activePalette: (state) =>
