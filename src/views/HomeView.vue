@@ -84,6 +84,22 @@ const openFilePicker = () => {
   fileInput.value?.click()
 }
 
+const checkFileType = (file: File | undefined) => {
+  const type = file?.type
+  if (!file || !type){
+    errorMessage.value = 'File not found.'
+    return false
+  }
+
+  // Check file type
+  if(settings.acceptFileTypes.includes(type)) {
+    return true
+  }else{
+    errorMessage.value = 'Invalid file type. Please choose a PNG, JPG, WEBP, or GIF image.'
+    return false
+  }
+}
+
 const checkFileSize = (file: File | undefined) => {
     const size = file?.size
   if (!file || !size){
@@ -95,7 +111,6 @@ const checkFileSize = (file: File | undefined) => {
   //  bytes/(1024*1024)
   const mb = size/(1024*1024)
   if(mb <= settings.sizeLimitMB) {
-    void processFile(file)
     return true
   }else{
     errorMessage.value = 'File size limit exceeded.'
@@ -105,13 +120,19 @@ const checkFileSize = (file: File | undefined) => {
 
 const handleFileInput = (event: Event) => {
   const input = event.target as HTMLInputElement
-  const valid = checkFileSize(input.files?.[0])
-  if(valid) input.value = ''
+  const validType = checkFileType(input.files?.[0])
+  const validSize = checkFileSize(input.files?.[0])
+  if(validType && validSize){
+    processFile(input.files?.[0] as File)
+    input.value = ''
+  }
 }
 
 const handleDrop = (event: DragEvent) => {
   isDragging.value = false
-  checkFileSize(event.dataTransfer?.files[0])
+  const validType = checkFileType(event.dataTransfer?.files[0])
+  const validSize = checkFileSize(event.dataTransfer?.files[0])
+  if(validType && validSize) processFile(event.dataTransfer?.files[0] as File)
 }
 
 const reprocessArtwork = () => {
