@@ -39,17 +39,21 @@ export const usePixelizationStore = defineStore('pixelization', {
     acceptFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
     ditheringStyle: [
       {
-        id: 'errorDiffusion',
-        name: "Error diffusion",
+        id: 'default',
+        name: "Diffusion",
       },
       {
-        id: 'ordered',
-        name: "Ordered"
+        id: 'matted',
+        name: "Matted"
+      },
+      {
+        id: 'grid',
+        name: "Grid"
       }
     ],
     selectedSize: 4,
     selectedPalette: 'original',
-    selectedStyle: 'errorDiffusion',
+    selectedStyle: 'default',
     ditherStrength: 0.35,
     sizeLimitMB: 5,
   }),
