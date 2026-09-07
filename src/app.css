@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Pixelify+Sans:wght@400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --px-ink: #0b0a13;
+  --px-surface: #151326;
+  --px-surface-raised: #201d36;
+  --px-grid: #373252;
+  --px-violet: #9d5cff;
+  --px-violet-bright: #b98cff;
+  --px-azure: #38bdf8;
+  --px-azure-bright: #7dd3fc;
+  --px-text: #f5f3ff;
+  --px-text-muted: #b7b0cc;
+  --px-success: #a3e635;
+  --px-danger: #fb7185;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-ui: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --radius-sm: 8px;
+  --shadow-glow: 0 0 24px rgb(157 92 255 / 18%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--px-ink);
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--px-ink);
+  color: var(--px-text);
+  font-family: var(--font-ui);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary {
+  border: 1px solid var(--px-violet);
+  background: var(--px-violet);
+  color: var(--px-ink);
+}
+
+.primary:hover {
+  background: var(--px-violet-bright);
+  border-color: var(--px-violet-bright);
+}
+
+.secondary {
+  border: 1px solid var(--px-azure);
+  background: transparent;
+  color: var(--px-azure-bright);
+}
+
+.secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
