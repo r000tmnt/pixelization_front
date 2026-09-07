@@ -51,6 +51,19 @@
         </div>
         <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
       </div>
+      <div class="actions output" aria-label="Image actions">
+        <!-- <button class="button primary" type="button" @click="emit('choose-image')">
+          {{ hasArtwork ? 'Replace image' : 'Choose an image' }}
+        </button> -->
+        <button
+          class="button secondary"
+          type="button"
+          :disabled="!hasArtwork || isProcessing"
+          @click="downloadArtwork"
+        >
+          DOWNLOAD
+        </button>
+      </div>
     </section>
   </main>
 </template>
@@ -157,6 +170,16 @@ const processFile = async(file: File) => {
     const result = await pixelApi.convert(form)
     if (!result?.data?.data || !result.data.width || !result.data.height)
       throw new Error('Invalid conversion response')
+
+    const { width, height } = result.data
+    const isLandscape = width >= height;
+
+    const canvasElement = canvas.value
+    if (!canvasElement) throw new Error('Canvas unavailable')
+
+    canvasElement.style.width = isLandscape && window.innerWidth <= 899 ? '100%' : 'auto'
+    canvasElement.style.height = isLandscape && window.innerWidth <= 899 ? 'auto' : '100%'
+
     await drawArtwork(result.data.data, result.data.width, result.data.height)
     imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
@@ -239,7 +262,7 @@ const downloadArtwork = () => {
 .canvas-stage {
   position: relative;
   display: grid;
-  min-height: min(72vh, 720px);
+  /* min-height: min(75vh, 720px); */
   overflow: hidden;
   place-items: center;
   border: 1px solid var(--px-grid);
@@ -248,6 +271,7 @@ const downloadArtwork = () => {
     linear-gradient(var(--px-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
   background-size: 8px 8px;
+  margin-bottom: 22px;
 }
 .canvas-stage.has-artwork {
   background-image: none;
@@ -362,6 +386,11 @@ button:focus-visible {
   outline: 2px solid var(--px-azure);
   outline-offset: 2px;
 }
+.actions{
+  display: flex;
+  justify-content: center;
+}
+
 @keyframes scan {
   from {
     transform: translateY(-360px);
@@ -377,12 +406,7 @@ button:focus-visible {
     transition: none;
   }
 }
-@media (min-width: 900px) {
-  .canvas-stage {
-    height: min(72vh, 720px);
-    min-height: 0;
-  }
-}
+
 @media (max-width: 899px) {
   .workspace-shell {
     grid-template-columns: 1fr;
