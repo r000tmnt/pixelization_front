@@ -97,7 +97,7 @@
         </section>
       </Transition>
 
-      <section class="tool-section actions" aria-label="Image actions">
+      <!-- <section class="tool-section actions" aria-label="Image actions">
         <button class="button primary" type="button" @click="emit('choose-image')">
           {{ hasArtwork ? 'Replace image' : 'Choose an image' }}
         </button>
@@ -109,7 +109,7 @@
         >
           Export PNG
         </button>
-      </section>
+      </section> -->
     </div>
 
     <div class="status-row" aria-live="polite">
@@ -304,32 +304,7 @@ button {
 .actions {
   grid-template-columns: 1fr 1fr;
 }
-.button {
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-weight: 600;
-  cursor: pointer;
-}
-.primary {
-  border: 1px solid var(--px-violet);
-  background: var(--px-violet);
-  color: var(--px-ink);
-}
-.primary:hover {
-  background: var(--px-violet-bright);
-  border-color: var(--px-violet-bright);
-}
-.secondary {
-  border: 1px solid var(--px-azure);
-  background: transparent;
-  color: var(--px-azure-bright);
-}
-.secondary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+
 .status-row {
   display: flex;
   align-items: center;
@@ -384,6 +359,14 @@ button:focus-visible {
   }
   .status-row {
     margin-top: 28px;
+  }
+
+  .tool-section{
+    display: block;
+  }
+
+  .tool-section > .section-heading{
+    margin: 10px 0;
   }
 }
 @media (max-width: 620px) {
