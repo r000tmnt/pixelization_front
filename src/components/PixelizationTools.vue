@@ -53,36 +53,49 @@
         </div>
       </section>
 
-      <section class="tool-section" aria-labelledby="pixel-size-title">
-        <div class="section-heading">
-          <p id="pixel-size-title" class="tool-label">Dithering style</p>
-          <output>{{ selectedSize }}×</output>
-        </div>
-        <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
-          <button
-            v-for="style in ditheringStyle"
-            :key="style.id"
-            type="button"
-            role="radio"
-            :aria-checked="selectedStyle === style.id"
-            :class="{ active: selectedStyle === style.id }"
-            @click="changeDitheringStyle(style.id)"
-          >
-            {{ style.name }}
-          </button>
-        </div>
+      <Transition>
+        <section
+          class="tool-section"
+          aria-labelledby="pixel-size-title"
+          v-if="selectedPalette !== 'original'">
+          <div class="section-heading">
+            <p id="pixel-size-title" class="tool-label">Dithering style</p>
+            <output>{{ selectedSize }}×</output>
+          </div>
+          <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
+            <button
+              v-for="style in ditheringStyle"
+              :key="style.id"
+              type="button"
+              role="radio"
+              :aria-checked="selectedStyle === style.id"
+              :class="{ active: selectedStyle === style.id }"
+              @click="changeDitheringStyle(style.id)"
+            >
+              {{ style.name }}
+            </button>
+          </div>
 
-        <div>
-          <label>Change dithering level</label>
-          <input
-            type="range"
-            v-model="ditherStrength"
-            min="0" max="1" step="0.05"
-            @change="changeDitherStrength"
-            :disabled="selectedPalette === 'original'"
-            />
-        </div>
-      </section>
+          <div>
+            <label>Change dithering level</label>
+            <input
+              v-if="selectedStyle !== 'grid'"
+              type="range"
+              v-model="ditherStrength"
+              min="0" max="1" step="0.05"
+              @change="changeDitherStrength"
+              />
+
+            <input
+              v-else
+              type="range"
+              value="2"
+              min="1" max="3" step="1"
+              @change="changeDitherStrength"
+              />
+          </div>
+        </section>
+      </Transition>
 
       <section class="tool-section actions" aria-label="Image actions">
         <button class="button primary" type="button" @click="emit('choose-image')">
@@ -147,6 +160,13 @@ function changePalette(palette: string) {
 const changeDitheringStyle = (style: string) => {
   if (selectedStyle.value === style) return
   settings.setDitherStyle(style)
+
+  if(style === 'grid') {
+    settings.setDitherStrength(4)
+  }else{
+    settings.setDitherStrength(0.35)
+  }
+
   emit('settings-changed')
 }
 
@@ -155,7 +175,16 @@ function changeDitherStrength(e: Event) {
 
   const strength = (e.target as HTMLInputElement).value
 
-  settings.setDitherStrength(Number(strength))
+  if(selectedStyle.value === 'grid') {
+    const value = Number(strength) - 1
+
+    const step = [2, 4, 8]
+
+    settings.setDitherStrength(step[value] as number)
+  }else{
+    settings.setDitherStrength(Number(strength))
+  }
+
   emit('settings-changed')
 }
 </script>
@@ -362,5 +391,21 @@ button:focus-visible {
     grid-template-columns: 1fr;
     gap: 22px;
   }
+}
+
+.v-enter-active{
+  transition: all 0.5s ease-in-out;
+  max-height: 150px;
+}
+
+.v-leave-active {
+  transition: all 0.3s ease-in-out;
+  max-height: 150px;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+  max-height: 0px;
 }
 </style>
