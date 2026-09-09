@@ -39,6 +39,11 @@ export const usePixelizationStore = defineStore('pixelization', {
         id: 'monochrome',
         name: 'Monochrome',
         colours: ['#000000', '#222222', '#444444', '#666666'],
+      },
+      {
+        id: 'custom',
+        name: 'Custom',
+        colours: ['#f2796100', '#b3b32400', '#f2796100', '#b3b32400'],
       }
     ] as Palette[],
     acceptFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
@@ -59,6 +64,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     selectedSize: 4,
     selectedPalette: 'original',
     selectedStyle: 'default',
+    selectedColors: [] as string[],
     ditherStrength: 0.35,
     sizeLimitMB: 5,
   }),
@@ -78,6 +84,9 @@ export const usePixelizationStore = defineStore('pixelization', {
     },
     setDitherStyle(style: string) {
       this.selectedStyle = style
+    },
+    setCustomColors(colors: string[]) {
+      this.selectedColors = colors
     }
   },
 })
