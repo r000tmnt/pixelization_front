@@ -10,7 +10,7 @@
       <section class="tool-section" aria-labelledby="pixel-size-title">
         <div class="section-heading">
           <p id="pixel-size-title" class="tool-label">Pixel size</p>
-          <output>{{ selectedSize }}×</output>
+          <!-- <output>{{ selectedSize }}×</output> -->
         </div>
         <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
           <button
@@ -30,7 +30,7 @@
       <section class="tool-section" aria-labelledby="palette-title">
         <div class="section-heading">
           <p id="palette-title" class="tool-label">Palette</p>
-          <output>{{ activePalette.name }}</output>
+          <!-- <output>{{ activePalette.name }}</output> -->
         </div>
         <div class="palette-options" role="radiogroup" aria-label="Pick a palette">
           <button
@@ -60,7 +60,7 @@
           v-if="selectedPalette !== 'original'">
           <div class="section-heading">
             <p id="pixel-size-title" class="tool-label">Dithering style</p>
-            <output>{{ selectedSize }}×</output>
+            <!-- <output>{{ selectedSize }}×</output> -->
           </div>
           <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
             <button
@@ -135,7 +135,6 @@ const emit = defineEmits<{ 'choose-image': []; 'export-image': []; 'settings-cha
 const settings = usePixelizationStore()
 
 const {
-  activePalette,
   palettes,
   pixelSizes,
   selectedPalette,
