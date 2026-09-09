@@ -24,7 +24,11 @@
             class="color-box"
             :style="{ backgroundColor: color }"
           >
-            <input class="hidden" type="color" @input="(e) => changeColor(e, index)" />
+            <input
+              class="hidden"
+              type="color"
+              :value="color"
+              @input="(e) => changeColor(e, index)" />
           </div>
         </div>
 
@@ -63,7 +67,7 @@
   const { setCustomColors } = settings
 
   const colors = ref<string[]>([
-    '', ''
+    '#ffffff', '#ffffff'
   ])
 
   const colorMissing = computed(() => {
@@ -79,7 +83,7 @@
       colors.value = colors.value.slice(0, newLength)
     } else {
       while(colors.value.length < newLength) {
-        colors.value.push('')
+        colors.value.push('#ffffff')
       }
     }
   }
