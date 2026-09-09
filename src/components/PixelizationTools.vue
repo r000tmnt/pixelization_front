@@ -130,7 +130,7 @@ defineProps<{
   statusLabel: string
 }>()
 
-const emit = defineEmits<{ 'choose-image': []; 'export-image': []; 'settings-changed': [] }>()
+const emit = defineEmits<{ 'choose-image': []; 'export-image': []; 'settings-changed': [], 'open-custom-palette': [] }>()
 
 const settings = usePixelizationStore()
 
@@ -151,8 +151,13 @@ function changePixelSize(size: number) {
 }
 
 function changePalette(palette: string) {
+  if(palette === 'custom') {
+    emit('open-custom-palette')
+  }
+
   if (selectedPalette.value === palette) return
   settings.setPalette(palette)
+
   emit('settings-changed')
 }
 
