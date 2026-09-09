@@ -212,10 +212,17 @@ const processFile = async(file: File) => {
     const canvasElement = canvas.value
     if (!canvasElement) throw new Error('Canvas unavailable')
 
-    canvasElement.style.width = isLandscape && window.innerWidth <= 899 ? '100%' : 'auto'
-    canvasElement.style.height = isLandscape && window.innerWidth <= 899 ? 'auto' : '100%'
+    if((width / 2) < height) {
+      canvasElement.style.width = 'auto'
+      canvasElement.style.height = '100%'
+    }else{
+      canvasElement.style.width = isLandscape ?'100%' : 'auto'
+      canvasElement.style.height = isLandscape ?'auto' : '100%'
+    }
 
     await drawArtwork(result.data.data, result.data.width, result.data.height)
+
+    console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
     sourceFile.value = null
