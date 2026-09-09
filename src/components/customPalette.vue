@@ -4,6 +4,7 @@
       <div class="content">
         <div class="palette-header">
           <h3>Custom Palette</h3>
+          <button class="close secondary" @click="emit('close')">X</button>
         </div>
 
         <div>
@@ -38,7 +39,7 @@
             emit('close')
             emit('settings-changed')
           }"
-          class="save-button"
+          class="save button primary"
           :disabled="colorMissing">
           Go
         </button>
@@ -123,6 +124,19 @@
     background: var(--px-surface);
     border-radius: 4px;
     padding: 1% 2%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .palette-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* margin-bottom: 20px; */
+  }
+
+  .close{
+    cursor: pointer;
   }
 
   .color-grid{
@@ -130,7 +144,7 @@
     /* grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); */
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
     gap: 10px;
-    padding: 20px;
+    padding: 20px 0;
   }
 
   .color-box {
@@ -145,5 +159,10 @@
     opacity: 0;
     width: 100%;
     height: 100%;
+  }
+
+  .save{
+    width: 100%;
+    margin-top: auto;
   }
 </style>
