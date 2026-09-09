@@ -8,6 +8,7 @@
       @choose-image="openFilePicker"
       @export-image="downloadArtwork"
       @settings-changed="reprocessArtwork"
+      @open-custom-palette="toggleCustomPalette"
     />
     <section class="artwork-zone" aria-labelledby="stage-title">
       <input
@@ -25,7 +26,7 @@
             {{ hasArtwork ? 'Your pixel art is ready.' : 'Make pixels from a photo.' }}
           </h2>
         </div>
-        <p v-if="imageDetails" class="image-details">{{ imageDetails }}</p>
+        <!-- <p v-if="imageDetails" class="image-details">{{ imageDetails }}</p> -->
       </div>
       <div
         :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
@@ -51,7 +52,7 @@
         </div>
         <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
       </div>
-      <div class="actions output" aria-label="Image actions">
+      <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
         <!-- <button class="button primary" type="button" @click="emit('choose-image')">
           {{ hasArtwork ? 'Replace image' : 'Choose an image' }}
         </button> -->
@@ -65,13 +66,22 @@
         </button>
       </div>
     </section>
+
+    <customPalette
+      v-if="openCustomPalette"
+      :display="openCustomPalette"
+      @settings-changed="reprocessArtwork"
+      @close="openCustomPalette = false"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
+import customPalette from '@/components/customPalette.vue'
 import pixelApi from '../api/pixel'
+import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
 
 const settings = usePixelizationStore()
@@ -81,7 +91,8 @@ const sourceFile = ref<File | null>(null)
 const isProcessing = ref(false)
 const isDragging = ref(false)
 const errorMessage = ref('')
-const imageDetails = ref('')
+// const imageDetails = ref('')
+const openCustomPalette = ref(false)
 const hasArtwork = computed(() => sourceFile.value !== null)
 const status = computed(() =>
   isProcessing.value
@@ -92,6 +103,14 @@ const status = computed(() =>
         ? { type: 'ready', label: 'READY' }
         : { type: 'idle', label: 'AWAITING IMAGE' },
 )
+
+const {
+  selectedPalette,
+  selectedSize,
+  selectedStyle,
+  selectedColors,
+  ditherStrength,
+} = storeToRefs(settings)
 
 const openFilePicker = () => {
   fileInput.value?.click()
@@ -149,7 +168,14 @@ const handleDrop = (event: DragEvent) => {
 }
 
 const reprocessArtwork = () => {
-  if (sourceFile.value) void processFile(sourceFile.value)
+  if (sourceFile.value) {
+
+    if (openCustomPalette.value) {
+      return
+    }
+
+    processFile(sourceFile.value)
+  }
 }
 
 const processFile = async(file: File) => {
@@ -161,11 +187,20 @@ const processFile = async(file: File) => {
   errorMessage.value = ''
   isProcessing.value = true
   const form = new FormData()
-  form.append('pixelSize', String(settings.selectedSize))
-  form.append('palette', settings.selectedPalette)
-  form.append('ditherStrength', String(settings.ditherStrength))
-  form.append('ditherStyle', String(settings.selectedStyle))
+  form.append('pixelSize', String(selectedSize.value))
+  form.append('palette', selectedPalette.value)
+  form.append('ditherStrength', String(ditherStrength.value))
+  form.append('ditherStyle', String(selectedStyle.value))
   form.append('file', file)
+
+  console.log(selectedPalette.value)
+  console.log(selectedColors.value)
+
+  if (selectedPalette.value === 'custom' && selectedColors.value.length > 0) {
+    const customColors = selectedColors.value.join(';')
+    form.append('customColors', customColors)
+  }
+
   try {
     const result = await pixelApi.convert(form)
     if (!result?.data?.data || !result.data.width || !result.data.height)
@@ -181,7 +216,7 @@ const processFile = async(file: File) => {
     canvasElement.style.height = isLandscape && window.innerWidth <= 899 ? 'auto' : '100%'
 
     await drawArtwork(result.data.data, result.data.width, result.data.height)
-    imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
+    // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
     sourceFile.value = null
     errorMessage.value = 'We could not pixelize that image. Please try another file.'
@@ -216,6 +251,10 @@ const downloadArtwork = () => {
   link.download = 'pixelization-artwork.png'
   link.href = target.toDataURL('image/png')
   link.click()
+}
+
+const toggleCustomPalette = () => {
+  openCustomPalette.value = true
 }
 </script>
 
