@@ -91,3 +91,7 @@ input {
 .slider > input {
   margin: 0 10px;
 }
+
+.sub-tool{
+  font-size: 0.9rem
+}
