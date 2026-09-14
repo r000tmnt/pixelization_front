@@ -1,53 +1,51 @@
 <template>
-  <Transition name="fade">
-    <div v-if="display" class="wrapper"
-      :style="{ marginTop: `${scrollTop}px` }">
-      <div class="content">
-        <div class="palette-header">
-          <h3>Custom Palette</h3>
-          <button class="close secondary" @click="emit('close')">X</button>
-        </div>
-
-        <div class="slider sub-tool">
-          <label>Range of color</label>
-          <input
-            type="range"
-            :min="2"
-            :max="16"
-            :step="1"
-            :value="colors.length"
-            @input="updateColorSlots" />
-          <div>{{ colors.length }}</div>
-        </div>
-
-        <div class="color-grid">
-          <div
-            v-for="(color, index) in colors"
-            :key="index"
-            class="color-box"
-            :style="{ backgroundColor: color }"
-          >
-            <input
-              class="hidden"
-              type="color"
-              :value="color"
-              @input="(e) => changeColor(e, index)" />
-          </div>
-        </div>
-
-        <button
-          @click="() => {
-            setCustomColors(colors)
-            emit('close')
-            emit('settings-changed')
-          }"
-          class="save button primary"
-          :disabled="colorMissing">
-          Go
-        </button>
+  <div class="wrapper"
+    :style="{ marginTop: `${scrollTop}px` }">
+    <div class="content">
+      <div class="palette-header">
+        <h3>Custom Palette</h3>
+        <button class="close secondary" @click="emit('close')">X</button>
       </div>
+
+      <div class="slider sub-tool">
+        <label>Range of color</label>
+        <input
+          type="range"
+          :min="2"
+          :max="16"
+          :step="1"
+          :value="colors.length"
+          @input="updateColorSlots" />
+        <div>{{ colors.length }}</div>
+      </div>
+
+      <div class="color-grid">
+        <div
+          v-for="(color, index) in colors"
+          :key="index"
+          class="color-box"
+          :style="{ backgroundColor: color }"
+        >
+          <input
+            class="hidden"
+            type="color"
+            :value="color"
+            @input="(e) => changeColor(e, index)" />
+        </div>
+      </div>
+
+      <button
+        @click="() => {
+          setCustomColors(colors)
+          emit('close')
+          emit('settings-changed')
+        }"
+        class="save button primary"
+        :disabled="colorMissing">
+        Go
+      </button>
     </div>
-  </Transition>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -63,10 +61,6 @@
   const { scrollTop } = storeToRefs(defaultStore)
 
   // const { setScrollTop } = defaultStore
-
-  defineProps<{
-    display: boolean
-  }>()
 
   const emit = defineEmits<{'settings-changed': [], 'close': []}>()
 
