@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 
 export const useDefaultStore = defineStore('default', {
   state: () => ({
-    scrollTop: 0
+    scrollTop: 0,
+    isPad: false
   }),
   getters: {
     activeScrollTop: (state) => {
@@ -12,6 +13,9 @@ export const useDefaultStore = defineStore('default', {
   actions: {
     setScrollTop (scrollTop: number) {
       this.scrollTop = scrollTop
+    },
+    setIsPad (isPad: boolean) {
+      this.isPad = isPad
     }
   }
 })
