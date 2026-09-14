@@ -2,7 +2,11 @@
   <aside class="tool-rail" aria-label="Pixelization tools">
     <header class="brand-lockup">
       <!-- <p class="eyebrow">Creative image utility</p> -->
-      <h1>Pixelization</h1>
+       <div class="title">
+          <h1>Pixelization</h1>
+          <small>v {{ version }}</small>
+       </div>
+
       <p class="intro">Turn a photograph into a deliberately pixelated artwork.</p>
     </header>
 
@@ -12,7 +16,8 @@
           <p id="pixel-size-title" class="tool-label">Pixel size</p>
           <!-- <output>{{ selectedSize }}×</output> -->
         </div>
-        <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
+        <div class="segmented-control" role="radiogroup" aria-label="Set pixel size"
+        :style="{ gridTemplateColumns: `repeat(${pixelSizes.length}, 1fr)`}">
           <button
             v-for="size in pixelSizes"
             :key="size"
@@ -62,7 +67,8 @@
             <p id="pixel-size-title" class="tool-label">Dithering style</p>
             <!-- <output>{{ selectedSize }}×</output> -->
           </div>
-          <div class="segmented-control" role="radiogroup" aria-label="Set pixel size">
+          <div class="segmented-control" role="radiogroup" aria-label="Set pixel size"
+          :style="{ gridTemplateColumns: `repeat(${ditheringStyle.length}, 1fr)`}">
             <button
               v-for="style in ditheringStyle"
               :key="style.id"
@@ -76,15 +82,16 @@
             </button>
           </div>
 
-          <div class="slider" style="justify-content: space-between;">
-            <label class="tool-label">Strength</label>
+          <div class="slider section-heading sub-tool" style="justify-content: space-between;">
+            <label>Strength</label>
             <input
               v-if="selectedStyle !== 'grid'"
               type="range"
               v-model="ditherStrength"
               min="0" max="1" step="0.05"
               @change="changeDitherStrength"
-              />
+              style="width:100%"
+            />
 
             <input
               v-else
@@ -98,20 +105,6 @@
           </div>
         </section>
       </Transition>
-
-      <!-- <section class="tool-section actions" aria-label="Image actions">
-        <button class="button primary" type="button" @click="emit('choose-image')">
-          {{ hasArtwork ? 'Replace image' : 'Choose an image' }}
-        </button>
-        <button
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="emit('export-image')"
-        >
-          Export PNG
-        </button>
-      </section> -->
     </div>
   </aside>
 </template>
@@ -119,6 +112,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
+// import { ref, onMounted } from 'vue'
 
 defineProps<{
   hasArtwork: boolean
@@ -139,13 +133,15 @@ const {
   ditheringStyle
 } = storeToRefs(settings)
 
-function changePixelSize(size: number) {
+const version = import.meta.env.VITE_APP_VERSION
+
+const changePixelSize = (size: number) => {
   if (selectedSize.value === size) return
   settings.setPixelSize(size)
   emit('settings-changed')
 }
 
-function changePalette(palette: string) {
+const changePalette = (palette: string) => {
   if(palette === 'custom') {
     emit('open-custom-palette')
   }
@@ -189,6 +185,11 @@ function changeDitherStrength(e: Event) {
 </script>
 
 <style scoped>
+.title{
+  display: flex;
+  align-items: baseline;
+}
+
 .tool-rail {
   position: sticky;
   top: 0;
@@ -199,7 +200,7 @@ function changeDitherStrength(e: Event) {
   background: var(--px-surface);
 }
 .brand-lockup h1 {
-  margin: 7px 0 14px;
+  margin: 7px 10px 14px 0px;
   font-family: 'Pixelify Sans', var(--font-display);
   font-size: clamp(1.8rem, 3vw, 2.2rem);
   font-weight: 400;
@@ -210,7 +211,7 @@ function changeDitherStrength(e: Event) {
 output {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -244,7 +245,6 @@ output {
 }
 .segmented-control {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--px-grid);
@@ -325,10 +325,10 @@ button:focus-visible {
     border-right: 0;
     border-bottom: 1px solid var(--px-grid);
   }
-  .tool-stack {
+  /* .tool-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 28px;
-  }
+  } */
   .actions {
     align-content: end;
   }
@@ -343,11 +343,20 @@ button:focus-visible {
   .tool-section > .section-heading{
     margin: 10px 0;
   }
+
+  .palette-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 620px) {
   .tool-stack {
     grid-template-columns: 1fr;
     gap: 22px;
+  }
+
+  .palette-options {
+    /* grid-template-columns: 1fr; */
+    font-size: 0.9rem
   }
 }
 
