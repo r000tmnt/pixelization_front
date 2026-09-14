@@ -75,18 +75,28 @@
       @settings-changed="reprocessArtwork"
       @close="openCustomPalette = false"
     />
+
+    <footerSection v-if="isPad" />
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, onMounted } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
+import footerSection from '@/components/footerSection.vue'
+
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
+import { useDefaultStore } from '@/stores/default.ts'
 
 const settings = usePixelizationStore()
+const defaultStore = useDefaultStore()
+
+const { isPad } = storeToRefs(defaultStore)
+const { setIsPad } = defaultStore
+
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
 const sourceFile = ref<File | null>(null)
@@ -265,6 +275,15 @@ const downloadArtwork = () => {
 const toggleCustomPalette = () => {
   openCustomPalette.value = true
 }
+
+const onResize = () => {
+  setIsPad(window.innerWidth <= 899)
+}
+
+onMounted(() => {
+  onResize()
+  addEventListener('resize', onResize)
+})
 </script>
 
 <style scoped>
