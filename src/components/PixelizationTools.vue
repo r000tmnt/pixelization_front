@@ -76,8 +76,8 @@
             </button>
           </div>
 
-          <div>
-            <label>Change dithering level</label>
+          <div class="slider" style="justify-content: space-between;">
+            <label class="tool-label">Strength</label>
             <input
               v-if="selectedStyle !== 'grid'"
               type="range"
@@ -93,6 +93,8 @@
               min="1" max="3" step="1"
               @change="changeDitherStrength"
               />
+
+            <div>{{ ditherStrength }}</div>
           </div>
         </section>
       </Transition>
