@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
+import { useI18n } from 'vue-i18n'
 
 export const useDefaultStore = defineStore('default', {
   state: () => ({
     scrollTop: 0,
-    isPad: false
+    isPad: false,
+    lang: 'us'
   }),
   getters: {
     activeScrollTop: (state) => {
@@ -16,6 +18,14 @@ export const useDefaultStore = defineStore('default', {
     },
     setIsPad (isPad: boolean) {
       this.isPad = isPad
+    },
+    setLocale (id: string) {
+      this.lang = id
+      localStorage.setItem('locale', id)
+
+      const { locale } = useI18n()
+
+      locale.value = id
     }
   }
 })

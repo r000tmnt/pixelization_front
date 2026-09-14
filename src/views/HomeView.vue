@@ -19,15 +19,17 @@
       />
       <div class="stage-meta">
         <div>
-          <p class="eyebrow">Status</p>
+          <p class="eyebrow">{{ $t('label-status') }}</p>
           <!-- <h2 id="stage-title">
             {{ hasArtwork ? 'Your pixel art is ready.' : 'Make pixels from a photo.' }}
           </h2> -->
           <div class="status-row" aria-live="polite">
             <span :class="['status-dot', status.type]" aria-hidden="true"></span
-            ><span>{{ status.label }}</span>
+            ><span>{{ $t(status.label) }}</span>
           </div>
         </div>
+
+        <localeButton v-if="!isPad" @show-option="(v) => showLocale = v" />
         <!-- <p v-if="imageDetails" class="image-details">{{ imageDetails }}</p> -->
       </div>
       <div
@@ -69,12 +71,20 @@
       </div>
     </section>
 
-    <customPalette
-      v-if="openCustomPalette"
-      :display="openCustomPalette"
-      @settings-changed="reprocessArtwork"
-      @close="openCustomPalette = false"
-    />
+    <Transition name="fade">
+      <customPalette
+        v-if="openCustomPalette"
+        @settings-changed="reprocessArtwork"
+        @close="openCustomPalette = false"
+      />
+    </Transition>
+
+    <Transition name="fade">
+      <localeDialog
+        v-if="showLocale"
+        @close="showLocale = false"
+      />
+    </Transition>
 
     <footerSection v-if="isPad" />
   </main>
@@ -85,6 +95,8 @@ import { computed, nextTick, ref, onMounted } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
+import localeButton from '@/components/localeButton.vue'
+import localeDialog from '@/components/localeDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -95,7 +107,9 @@ const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
 
 const { isPad } = storeToRefs(defaultStore)
-const { setIsPad } = defaultStore
+const { setIsPad, setLocale } = defaultStore
+
+const showLocale = ref<boolean>(false)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -108,12 +122,12 @@ const openCustomPalette = ref(false)
 const hasArtwork = computed(() => sourceFile.value !== null)
 const status = computed(() =>
   isProcessing.value
-    ? { type: 'processing', label: 'PROCESSING' }
+    ? { type: 'processing', label: 'status-process' }
     : errorMessage.value
-      ? { type: 'error', label: 'ERROR' }
+      ? { type: 'error', label: 'status-error' }
       : hasArtwork.value
-        ? { type: 'ready', label: 'READY' }
-        : { type: 'idle', label: 'AWAITING IMAGE' },
+        ? { type: 'ready', label: 'status-ready' }
+        : { type: 'idle', label: 'status-wait' },
 )
 
 const {
@@ -283,6 +297,12 @@ const onResize = () => {
 onMounted(() => {
   onResize()
   addEventListener('resize', onResize)
+
+  const locale = localStorage.getItem('locale')
+
+  if(locale){
+    setLocale(locale)
+  }
 })
 </script>
 
@@ -527,5 +547,15 @@ button:focus-visible {
   .replace-overlay {
     opacity: 1;
   }
+}
+
+:deep(.fade-enter-active),
+:deep(.fade-leave-active) {
+  transition: opacity 0.3s ease;
+}
+
+:deep(.fade-enter-from),
+:deep(.fade-leave-to) {
+  opacity: 0;
 }
 </style>

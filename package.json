@@ -1,6 +1,6 @@
 {
   "name": "pixelization_front",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -20,6 +20,8 @@
     "bootstrap-vue-next": "^0.45.8",
     "pinia": "^4.0.2",
     "vue": "^3.5.40",
+    "vue-country-flag-next": "^2.3.2",
+    "vue-i18n": "^11.4.10",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
