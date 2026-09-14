@@ -8,7 +8,7 @@
           <button class="close secondary" @click="emit('close')">X</button>
         </div>
 
-        <div class="slider">
+        <div class="slider sub-tool">
           <label>Range of color</label>
           <input
             type="range"
