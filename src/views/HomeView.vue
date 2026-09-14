@@ -3,8 +3,6 @@
     <PixelizationTools
       :has-artwork="hasArtwork"
       :is-processing="isProcessing"
-      :status-type="status.type"
-      :status-label="status.label"
       @choose-image="openFilePicker"
       @export-image="downloadArtwork"
       @settings-changed="reprocessArtwork"
@@ -21,10 +19,14 @@
       />
       <div class="stage-meta">
         <div>
-          <p class="eyebrow">Artwork stage</p>
-          <h2 id="stage-title">
+          <p class="eyebrow">Status</p>
+          <!-- <h2 id="stage-title">
             {{ hasArtwork ? 'Your pixel art is ready.' : 'Make pixels from a photo.' }}
-          </h2>
+          </h2> -->
+          <div class="status-row" aria-live="polite">
+            <span :class="['status-dot', status.type]" aria-hidden="true"></span
+            ><span>{{ status.label }}</span>
+          </div>
         </div>
         <!-- <p v-if="imageDetails" class="image-details">{{ imageDetails }}</p> -->
       </div>
@@ -435,6 +437,30 @@ button:focus-visible {
 .actions{
   display: flex;
   justify-content: center;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* margin-top: 42px; */
+  color: var(--px-text-muted);
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--px-text-muted);
+}
+.status-dot.ready {
+  background: var(--px-success);
+}
+.status-dot.processing {
+  background: var(--px-azure);
+  animation: pulse 1s steps(2, end) infinite;
+}
+.status-dot.error {
+  background: var(--px-danger);
 }
 
 @keyframes scan {

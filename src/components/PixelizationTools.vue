@@ -1,7 +1,7 @@
 <template>
   <aside class="tool-rail" aria-label="Pixelization tools">
     <header class="brand-lockup">
-      <p class="eyebrow">Creative image utility</p>
+      <!-- <p class="eyebrow">Creative image utility</p> -->
       <h1>Pixelization</h1>
       <p class="intro">Turn a photograph into a deliberately pixelated artwork.</p>
     </header>
@@ -113,11 +113,6 @@
         </button>
       </section> -->
     </div>
-
-    <div class="status-row" aria-live="polite">
-      <span :class="['status-dot', statusType]" aria-hidden="true"></span
-      ><span>{{ statusLabel }}</span>
-    </div>
   </aside>
 </template>
 
@@ -128,8 +123,6 @@ import { usePixelizationStore } from '../stores/pixelization'
 defineProps<{
   hasArtwork: boolean
   isProcessing: boolean
-  statusType: string
-  statusLabel: string
 }>()
 
 const emit = defineEmits<{ 'choose-image': []; 'export-image': []; 'settings-changed': [], 'open-custom-palette': [] }>()
@@ -214,7 +207,6 @@ function changeDitherStrength(e: Event) {
 }
 .eyebrow,
 .tool-label,
-.status-row,
 output {
   margin: 0;
   font-family: var(--font-mono);
@@ -311,29 +303,6 @@ button {
   grid-template-columns: 1fr 1fr;
 }
 
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 42px;
-  color: var(--px-text-muted);
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--px-text-muted);
-}
-.status-dot.ready {
-  background: var(--px-success);
-}
-.status-dot.processing {
-  background: var(--px-azure);
-  animation: pulse 1s steps(2, end) infinite;
-}
-.status-dot.error {
-  background: var(--px-danger);
-}
 button:focus-visible {
   outline: 2px solid var(--px-azure);
   outline-offset: 2px;
