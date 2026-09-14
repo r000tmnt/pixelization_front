@@ -68,10 +68,10 @@ export const usePixelizationStore = defineStore('pixelization', {
     ditherStrength: 0.35,
     sizeLimitMB: 5,
   }),
-  getters: {
-    activePalette: (state) =>
-      state.palettes.find((palette) => palette.id === state.selectedPalette) ?? state.palettes[0]!,
-  },
+  // getters: {
+  //   activePalette: (state) =>
+  //     state.palettes.find((palette) => palette.id === state.selectedPalette) ?? state.palettes[0]!,
+  // },
   actions: {
     setPixelSize(size: number) {
       this.selectedSize = size
