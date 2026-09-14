@@ -82,3 +82,12 @@ input {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.slider{
+  display: flex;
+  align-items: center
+}
+
+.slider > input {
+  margin: 0 10px;
+}
