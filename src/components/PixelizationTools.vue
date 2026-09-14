@@ -106,13 +106,18 @@
         </section>
       </Transition>
     </div>
+    <footerSection
+      v-if="!isPad"
+      :style="{ position: 'absolute', bottom: 0 }"
+    />
   </aside>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
-// import { ref, onMounted } from 'vue'
+import { useDefaultStore } from '@/stores/default.ts';
+import footerSection from './footerSection.vue';
 
 defineProps<{
   hasArtwork: boolean
@@ -122,6 +127,7 @@ defineProps<{
 const emit = defineEmits<{ 'choose-image': []; 'export-image': []; 'settings-changed': [], 'open-custom-palette': [] }>()
 
 const settings = usePixelizationStore()
+const { isPad } = storeToRefs(useDefaultStore())
 
 const {
   palettes,
@@ -134,6 +140,7 @@ const {
 } = storeToRefs(settings)
 
 const version = import.meta.env.VITE_APP_VERSION
+
 
 const changePixelSize = (size: number) => {
   if (selectedSize.value === size) return
