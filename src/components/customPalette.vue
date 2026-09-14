@@ -16,7 +16,7 @@
             :max="16"
             :step="1"
             :value="colors.length"
-            @change="updateColorSlots" />
+            @input="updateColorSlots" />
           <div>{{ colors.length }}</div>
         </div>
 
@@ -147,7 +147,7 @@
     /* height: 30%; */
     background: var(--px-surface);
     border-radius: 4px;
-    padding: 1% 2%;
+    padding: 5px 2% 23px 2%;
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
@@ -157,7 +157,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* margin-bottom: 20px; */
   }
 
   .close{
@@ -195,7 +194,8 @@
   @media (max-width: 576px) {
     .content{
       min-width: 80%;
-      padding: 2% 5%;
+      padding-left: 5%;
+      padding-right: 5%;
     }
 
     .color-grid{
