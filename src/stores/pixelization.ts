@@ -12,7 +12,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     palettes: [
       {
         id: 'original',
-        name: 'Original colour',
+        name: 'Original',
         colours: ['#fb7185', '#fbbf24', '#38bdf8', '#9d5cff'],
       },
       {
