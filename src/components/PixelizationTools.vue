@@ -5,6 +5,13 @@
        <div class="title">
           <h1>Pixelization</h1>
           <small>v {{ version }}</small>
+
+           <localeButton
+            v-if="isPad"
+            :value="showLocale"
+            @show-option="(v) => emit('show-locale', v)"
+            style="margin-left: auto;"
+          />
        </div>
 
       <p class="intro">{{ $t("title-desc") }}</p>
@@ -49,7 +56,7 @@
           >
             <span class="swatches" aria-hidden="true"
               ><i
-                v-for="colour in palette.colours"
+                v-for="colour in palette.colors"
                 :key="colour"
                 :style="{ backgroundColor: colour }"
               ></i></span
@@ -120,13 +127,21 @@ import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts';
 import footerSection from './footerSection.vue';
+import localeButton from './localeButton.vue';
 
 defineProps<{
   hasArtwork: boolean
-  isProcessing: boolean
+  isProcessing: boolean,
+  showLocale: boolean
 }>()
 
-const emit = defineEmits<{ 'choose-image': []; 'export-image': []; 'settings-changed': [], 'open-custom-palette': [] }>()
+const emit = defineEmits<{
+  'choose-image': [];
+  'export-image': [];
+  'settings-changed': [],
+  'open-custom-palette': []
+  'show-locale': [value: boolean]
+}>()
 
 const settings = usePixelizationStore()
 const { isPad } = storeToRefs(useDefaultStore())
@@ -142,7 +157,6 @@ const {
 } = storeToRefs(settings)
 
 const version = import.meta.env.VITE_APP_VERSION
-
 
 const changePixelSize = (size: number) => {
   if (selectedSize.value === size) return
