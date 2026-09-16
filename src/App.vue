@@ -6,20 +6,30 @@
   import { useDefaultStore } from './stores/default';
   import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n'
-  import { watch } from 'vue'
+  import { watch, computed  } from 'vue'
+  import { useSeoMeta } from '@unhead/vue';
 
   const defaultStore = useDefaultStore()
 
   const { setScrollTop } = defaultStore
   const { lang } = storeToRefs(defaultStore)
 
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
+
+  // const title = ref<string>('PIXELIZATION')
+
+  const pageTitle = computed(() => t('title-html'))
+
+  useSeoMeta({
+    title: pageTitle,
+    description: 'Turn PNG, JPG, WEBP, and GIF images into pixel art with customizable palettes and crisp pixel edges.',
+    ogDescription: 'Image to Pixel Art Converter.',
+    ogTitle: 'PIXELIZATION',
+    ogType: 'website',
+  })
 
   const onScroll = () => {
-    console.log('scroll', window.scrollY)
-
-
-
+    // console.log('scroll', window.scrollY)
     setScrollTop(window.scrollY)
   }
 
