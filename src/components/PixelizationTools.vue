@@ -82,7 +82,9 @@
             </button>
           </div>
 
-          <div class="slider section-heading sub-tool" style="justify-content: space-between;">
+          <div
+            class="slider section-heading sub-tool"
+            style="justify-content: space-between; white-space: nowrap;">
             <label>{{ $t("label-dither-strength") }}</label>
             <input
               v-if="selectedStyle !== 'grid'"
