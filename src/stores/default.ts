@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { useI18n } from 'vue-i18n'
 
 export const useDefaultStore = defineStore('default', {
   state: () => ({
@@ -22,10 +21,18 @@ export const useDefaultStore = defineStore('default', {
     setLocale (id: string) {
       this.lang = id
       localStorage.setItem('locale', id)
-
-      const { locale } = useI18n()
-
-      locale.value = id
+    },
+    setDisplayLang (locale: string) {
+        switch(locale){
+        case 'us':
+          return 'ENGLISH'
+        case 'tw':
+          return '繁體中文'
+        case 'jp':
+          return '日本語'
+        default:
+          return ''
+      }
     }
   }
 })
