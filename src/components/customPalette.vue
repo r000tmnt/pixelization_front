@@ -4,7 +4,7 @@
     <div class="content">
       <div class="dialog-header">
         <h3>{{ $t("label-custom") }}</h3>
-        <button class="close secondary" @click="emit('close')">X</button>
+        <!-- <button class="close secondary" @click="emit('close')">X</button> -->
       </div>
 
       <div class="slider sub-tool">
@@ -34,16 +34,27 @@
         </div>
       </div>
 
-      <button
-        @click="() => {
-          setCustomColors(colors)
-          emit('close')
-          emit('settings-changed')
-        }"
-        class="save button primary"
-        :disabled="colorMissing">
-        {{ $t("label-custom-apply") }}
-      </button>
+      <div class="save">
+        <button
+          @click="() => {
+            emit('close')
+          }"
+          class="button secondary"
+          :disabled="colorMissing">
+          {{ $t("label-custom-cancel") }}
+        </button>
+        <button
+          @click="() => {
+            setCustomColors(colors)
+            emit('close')
+            emit('settings-changed')
+          }"
+          class="button primary"
+          :disabled="colorMissing">
+          {{ $t("label-custom-apply") }}
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
@@ -172,6 +183,9 @@
   .save{
     width: 100%;
     margin-top: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
   @media (max-width: 576px) {
