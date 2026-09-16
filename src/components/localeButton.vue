@@ -13,38 +13,31 @@ import { ref, watch, onMounted } from 'vue';
 
 const defaultStore = useDefaultStore()
 const { lang } = storeToRefs(defaultStore)
+const { setDisplayLang } = defaultStore
 
+const props = defineProps({
+  value: {
+    type: Boolean,
+    default: false
+  }
+})
 const emit = defineEmits<{ 'show-option': [value: boolean] }>()
 
 const showOption = ref<boolean>(false)
 const displayLang = ref<string>('')
 
 const toggleOption = () => {
-  showOption.value = !showOption.value
+  showOption.value = !props.value
   emit('show-option', showOption.value)
-}
-
-const setDisplayLang = (locale: string) => {
-    switch(locale){
-    case 'us':
-      displayLang.value = 'ENGLISH'
-    break;
-    case 'tw':
-      displayLang.value = '繁體中文'
-    break;
-    case 'jp':
-      displayLang.value = '日本語'
-    break;
-  }
 }
 
 watch(() => lang.value, (newLang, oldLang) => {
   const locale = newLang.length? newLang : oldLang
-  setDisplayLang(locale)
+  displayLang.value = setDisplayLang(locale)
 })
 
 onMounted(() => {
-  setDisplayLang(lang.value)
+  displayLang.value = setDisplayLang(lang.value)
 })
 </script>
 
