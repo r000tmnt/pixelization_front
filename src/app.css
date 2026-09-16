@@ -95,3 +95,14 @@ input {
 .sub-tool{
   font-size: 0.9rem
 }
+
+.dialog-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close{
+  cursor: pointer;
+  border-radius: 8px;
+}
