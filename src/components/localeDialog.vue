@@ -2,7 +2,7 @@
   <section class="wrapper" @click="emit('close')">
     <div class="content">
       <div class="dialog-header">
-        <h3>Language</h3>
+        <h3>{{ $t("language") }}</h3>
         <!-- <button class="close secondary" @click="emit('close')">X</button> -->
       </div>
 
@@ -10,7 +10,10 @@
         <button v-for="id in list" :key="id"
           class="button"
           :class="`${lang === id? 'primary' : 'secondary'}`"
-          @click.stop="setLocale(id)">
+          @click.stop="() => {
+            setLocale(id)
+            emit('close')
+          }">
           {{ setDisplayLang(id) }}
         </button>
       </div>
