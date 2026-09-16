@@ -18,6 +18,7 @@
     "label-custom": "客製化顏色",
     "label-custom-color": "顏色數量",
     "label-custom-apply": "套用",
+    "label-custom-cancel": "取消",
     "status-wait": "等待圖片",
     "status-process": "處理中",
     "status-error": "錯誤",
@@ -30,5 +31,6 @@
     "error-type": "檔案類型錯誤，請選擇 PNG、JPG、WEBP 或是 GIF",
     "error-size": "檔案超過上限",
     "error-failed": "無法轉換，請另選圖片",
-    "download": "下載"
+    "download": "下載",
+    "language": "語言"
 }
