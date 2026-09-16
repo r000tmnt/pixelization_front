@@ -3,10 +3,12 @@
     <PixelizationTools
       :has-artwork="hasArtwork"
       :is-processing="isProcessing"
+      :show-locale="showLocale"
       @choose-image="openFilePicker"
       @export-image="downloadArtwork"
       @settings-changed="reprocessArtwork"
       @open-custom-palette="toggleCustomPalette"
+      @show-locale="(v) => showLocale = v"
     />
     <section class="artwork-zone" aria-labelledby="stage-title">
       <input
