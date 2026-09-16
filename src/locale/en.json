@@ -27,7 +27,7 @@
     "upload-hint": "Drop an image here or choose a file.",
     "upload-type": "PNG, JPG, WEBP, or GIF",
     "upload-limit": "{limit} MB MAX",
-    "upload-change": "Click the artwork to replace it",
+    "upload-change": "Click the image to replace it",
     "error-file": "File not found.",
     "error-type": "Invalid file type. Please choose a PNG, JPG, WEBP, or GIF image.",
     "error-size": "File size limit exceeded.",
