@@ -29,7 +29,7 @@
           </div>
         </div>
 
-        <localeButton v-if="!isPad" @show-option="(v) => showLocale = v" />
+        <localeButton v-if="!isPad" :value="showLocale" @show-option="(v) => showLocale = v" />
         <!-- <p v-if="imageDetails" class="image-details">{{ imageDetails }}</p> -->
       </div>
       <div
@@ -41,18 +41,18 @@
       >
         <button v-if="!hasArtwork" class="upload-zone" type="button" @click="openFilePicker">
           <span class="upload-icon" aria-hidden="true">+</span
-          ><strong>Drop an image here or choose a file.</strong
-          ><small>PNG, JPG, WEBP, or GIF</small>
-          <small>{{ settings.sizeLimitMB }} MB MAX</small>
+          ><strong>{{ $t("upload-hint") }}</strong
+          ><small>{{ $t("upload-type") }}</small>
+          <small>{{ $t("upload-limit", {limit: settings.sizeLimitMB}) }}</small>
         </button>
         <div v-else class="canvas-wrap">
           <canvas ref="canvas" aria-label="Pixelized artwork" @click="openFilePicker"></canvas
           ><button class="replace-overlay" type="button" @click="openFilePicker">
-            Click the artwork to replace it
+            {{ $t("upload-change") }}
           </button>
         </div>
         <div v-if="isProcessing" class="processing-overlay" role="status">
-          <span class="scan-line" aria-hidden="true"></span><span>Processing image</span>
+          <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
         </div>
         <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
       </div>
@@ -66,7 +66,7 @@
           :disabled="!hasArtwork || isProcessing"
           @click="downloadArtwork"
         >
-          DOWNLOAD
+          {{ $t("download") }}
         </button>
       </div>
     </section>
@@ -102,12 +102,15 @@ import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts'
+import { useI18n } from 'vue-i18n'
 
 const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
 
 const { isPad } = storeToRefs(defaultStore)
 const { setIsPad, setLocale } = defaultStore
+
+const { t } = useI18n()
 
 const showLocale = ref<boolean>(false)
 
@@ -145,7 +148,7 @@ const openFilePicker = () => {
 const checkFileType = (file: File | undefined) => {
   const type = file?.type
   if (!file || !type){
-    errorMessage.value = 'File not found.'
+    errorMessage.value = t('error-file')
     return false
   }
 
@@ -153,7 +156,7 @@ const checkFileType = (file: File | undefined) => {
   if(settings.acceptFileTypes.includes(type)) {
     return true
   }else{
-    errorMessage.value = 'Invalid file type. Please choose a PNG, JPG, WEBP, or GIF image.'
+    errorMessage.value = t('error-type')
     return false
   }
 }
@@ -161,7 +164,7 @@ const checkFileType = (file: File | undefined) => {
 const checkFileSize = (file: File | undefined) => {
     const size = file?.size
   if (!file || !size){
-    errorMessage.value = 'File not found.'
+    errorMessage.value = t('error-file')
     return false
   }
 
@@ -171,7 +174,7 @@ const checkFileSize = (file: File | undefined) => {
   if(mb <= settings.sizeLimitMB) {
     return true
   }else{
-    errorMessage.value = 'File size limit exceeded.'
+    errorMessage.value = t('error-size')
     return false
   }
 }
@@ -205,10 +208,10 @@ const reprocessArtwork = () => {
 }
 
 const processFile = async(file: File) => {
-  if (!file.type.startsWith('image/')) {
-    errorMessage.value = 'Choose an image file to begin.'
-    return
-  }
+  // if (!file.type.startsWith('image/')) {
+  //   errorMessage.value = 'Choose an image file to begin.'
+  //   return
+  // }
   sourceFile.value = file
   errorMessage.value = ''
   isProcessing.value = true
@@ -252,8 +255,8 @@ const processFile = async(file: File) => {
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
     sourceFile.value = null
-    errorMessage.value = 'We could not pixelize that image. Please try another file.'
-    console.error('Pixelization failed:', error)
+    errorMessage.value = t('error-failed')
+    // console.error('Pixelization failed:', error)
   } finally {
     isProcessing.value = false
   }

@@ -7,13 +7,13 @@
           <small>v {{ version }}</small>
        </div>
 
-      <p class="intro">Turn a photograph into a deliberately pixelated artwork.</p>
+      <p class="intro">{{ $t("title-desc") }}</p>
     </header>
 
     <div class="tool-stack">
       <section class="tool-section" aria-labelledby="pixel-size-title">
         <div class="section-heading">
-          <p id="pixel-size-title" class="tool-label">Pixel size</p>
+          <p id="pixel-size-title" class="tool-label">{{ $t("label-pixel") }}</p>
           <!-- <output>{{ selectedSize }}×</output> -->
         </div>
         <div class="segmented-control" role="radiogroup" aria-label="Set pixel size"
@@ -34,7 +34,7 @@
 
       <section class="tool-section" aria-labelledby="palette-title">
         <div class="section-heading">
-          <p id="palette-title" class="tool-label">Palette</p>
+          <p id="palette-title" class="tool-label">{{ $t("label-palette") }}</p>
           <!-- <output>{{ activePalette.name }}</output> -->
         </div>
         <div class="palette-options" role="radiogroup" aria-label="Pick a palette">
@@ -53,7 +53,7 @@
                 :key="colour"
                 :style="{ backgroundColor: colour }"
               ></i></span
-            ><span>{{ palette.name }}</span>
+            ><span>{{ $t(`label-color-${palette.id}`)  }}</span>
           </button>
         </div>
       </section>
@@ -64,7 +64,7 @@
           aria-labelledby="pixel-size-title"
           v-if="selectedPalette !== 'original'">
           <div class="section-heading">
-            <p id="pixel-size-title" class="tool-label">Dithering style</p>
+            <p id="pixel-size-title" class="tool-label">{{ $t("label-dither") }}</p>
             <!-- <output>{{ selectedSize }}×</output> -->
           </div>
           <div class="segmented-control" role="radiogroup" aria-label="Set pixel size"
@@ -78,12 +78,12 @@
               :class="{ active: selectedStyle === style.id }"
               @click="changeDitheringStyle(style.id)"
             >
-              {{ style.name }}
+              {{ $t(`label-dither-${style.id}`) }}
             </button>
           </div>
 
           <div class="slider section-heading sub-tool" style="justify-content: space-between;">
-            <label>Strength</label>
+            <label>{{ $t("label-dither-strength") }}</label>
             <input
               v-if="selectedStyle !== 'grid'"
               type="range"

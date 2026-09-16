@@ -2,13 +2,13 @@
   <div class="wrapper"
     :style="{ marginTop: `${scrollTop}px` }">
     <div class="content">
-      <div class="palette-header">
-        <h3>Custom Palette</h3>
+      <div class="dialog-header">
+        <h3>{{ $t("label-custom") }}</h3>
         <button class="close secondary" @click="emit('close')">X</button>
       </div>
 
       <div class="slider sub-tool">
-        <label>Range of color</label>
+        <label>{{ $t("label-custom-color") }}</label>
         <input
           type="range"
           :min="2"
@@ -42,7 +42,7 @@
         }"
         class="save button primary"
         :disabled="colorMissing">
-        Go
+        {{ $t("label-custom-apply") }}
       </button>
     </div>
   </div>
@@ -145,17 +145,6 @@
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
-  }
-
-  .palette-header{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .close{
-    cursor: pointer;
-    border-radius: 8px;
   }
 
   .color-grid{
