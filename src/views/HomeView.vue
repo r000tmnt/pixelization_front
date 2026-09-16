@@ -19,7 +19,7 @@
       />
       <div class="stage-meta">
         <div>
-          <p class="eyebrow">{{ $t('label-status') }}</p>
+          <!-- <p class="eyebrow">{{ $t('label-status') }}</p> -->
           <!-- <h2 id="stage-title">
             {{ hasArtwork ? 'Your pixel art is ready.' : 'Make pixels from a photo.' }}
           </h2> -->
