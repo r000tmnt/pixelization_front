@@ -99,7 +99,7 @@
               type="range"
               v-model="ditherStrength"
               min="0" max="1" step="0.05"
-              @change="(e) => changeStrength(e, 'dither')"
+              @input="(e) => changeStrength(e, 'dither')"
               style="width:100%"
             />
 
@@ -108,7 +108,7 @@
               type="range"
               value="2"
               min="1" max="3" step="1"
-              @change="(e) => changeStrength(e, 'dither')"
+              @input="(e) => changeStrength(e, 'dither')"
               />
 
             <div>{{ ditherStrength }}</div>
@@ -117,12 +117,12 @@
           <div
             class="slider section-heading sub-tool"
             style="justify-content: space-between; white-space: nowrap;">
-            <label>{{ 'Erode' }}</label>
+            <label>{{ $t("label-erode") }}</label>
             <input
               type="range"
               v-model="erodeStrength"
               min="0" max="3" step="1"
-              @change="(e) => changeStrength(e, 'erode')"
+              @input="(e) => changeStrength(e, 'erode')"
               style="width:100%"
             />
 
@@ -132,12 +132,12 @@
           <div
             class="slider section-heading sub-tool"
             style="justify-content: space-between; white-space: nowrap;">
-            <label>{{ 'Contrast' }}</label>
+            <label>{{ $t("label-contrast") }}</label>
             <input
               type="range"
               v-model="contrastStrength"
               min="-60" max="60" step="1"
-              @change="(e) => changeStrength(e, 'contrast')"
+              @input="(e) => changeStrength(e, 'contrast')"
               style="width:100%"
             />
 
