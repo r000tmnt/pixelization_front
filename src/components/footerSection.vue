@@ -11,6 +11,6 @@
     color: var(--px-text-muted);
     font-size: 12px;
     text-align: center;
-    padding: 30px 0;
+    /* padding: 30px 0; */
   }
 </style>
