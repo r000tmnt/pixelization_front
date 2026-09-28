@@ -141,6 +141,8 @@ const {
   selectedStyle,
   selectedColors,
   ditherStrength,
+  erodeStrength,
+  contrastStrength
 } = storeToRefs(settings)
 
 const openFilePicker = () => {
@@ -221,6 +223,8 @@ const processFile = async(file: File) => {
   form.append('pixelSize', String(selectedSize.value))
   form.append('palette', selectedPalette.value)
   form.append('ditherStrength', String(ditherStrength.value))
+  form.append('erodeStrength', String(erodeStrength.value))
+  form.append('contrastStrength', String(contrastStrength.value))
   form.append('ditherStyle', String(selectedStyle.value))
   form.append('file', file)
 
@@ -256,6 +260,7 @@ const processFile = async(file: File) => {
     console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
+    console.log(error)
     sourceFile.value = null
     errorMessage.value = t('error-failed')
     // console.error('Pixelization failed:', error)
