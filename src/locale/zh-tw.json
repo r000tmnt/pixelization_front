@@ -15,6 +15,8 @@
     "label-dither-matted": "平滑",
     "label-dither-grid": "網格",
     "label-dither-strength": "強度",
+    "label-erode": "侵蝕",
+    "label-contrast": "對比",
     "label-status": "狀態",
     "label-custom": "客製化顏色",
     "label-custom-color": "顏色數量",
