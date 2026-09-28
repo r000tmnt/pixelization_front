@@ -67,6 +67,8 @@ export const usePixelizationStore = defineStore('pixelization', {
     selectedStyle: 'default',
     selectedColors: [] as string[],
     ditherStrength: 0.35,
+    erodeStrength: 2,
+    contrastStrength: 5,
     sizeLimitMB: 5,
   }),
   // getters: {
@@ -82,6 +84,12 @@ export const usePixelizationStore = defineStore('pixelization', {
     },
     setDitherStrength(strength: number) {
       this.ditherStrength = strength
+    },
+    setErodeStrength(strength: number) {
+      this.erodeStrength = strength
+    },
+    setContrastStrength(strength: number) {
+      this.contrastStrength = strength
     },
     setDitherStyle(style: string) {
       this.selectedStyle = style
