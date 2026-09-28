@@ -4,6 +4,7 @@
       <!-- <p class="eyebrow">Creative image utility</p> -->
        <div class="title">
           <h1>Pixelization</h1>
+          <!-- <img src="/pixelization_logo.png" alt="logo" /> -->
           <small>v {{ version }}</small>
 
            <localeButton
@@ -98,7 +99,7 @@
               type="range"
               v-model="ditherStrength"
               min="0" max="1" step="0.05"
-              @change="changeDitherStrength"
+              @change="(e) => changeStrength(e, 'dither')"
               style="width:100%"
             />
 
@@ -107,17 +108,48 @@
               type="range"
               value="2"
               min="1" max="3" step="1"
-              @change="changeDitherStrength"
+              @change="(e) => changeStrength(e, 'dither')"
               />
 
             <div>{{ ditherStrength }}</div>
           </div>
+
+          <div
+            class="slider section-heading sub-tool"
+            style="justify-content: space-between; white-space: nowrap;">
+            <label>{{ 'Erode' }}</label>
+            <input
+              type="range"
+              v-model="erodeStrength"
+              min="0" max="3" step="1"
+              @change="(e) => changeStrength(e, 'erode')"
+              style="width:100%"
+            />
+
+            <div>{{ erodeStrength }}</div>
+          </div>
+
+          <div
+            class="slider section-heading sub-tool"
+            style="justify-content: space-between; white-space: nowrap;">
+            <label>{{ 'Contrast' }}</label>
+            <input
+              type="range"
+              v-model="contrastStrength"
+              min="-60" max="60" step="5"
+              @change="(e) => changeStrength(e, 'contrast')"
+              style="width:100%"
+            />
+
+            <div>{{ contrastStrength }}</div>
+          </div>
+
         </section>
       </Transition>
     </div>
     <footerSection
       v-if="!isPad"
-      :style="{ position: 'absolute', bottom: 0 }"
+
     />
   </aside>
 </template>
@@ -153,7 +185,9 @@ const {
   selectedSize,
   selectedStyle,
   ditherStrength,
-  ditheringStyle
+  ditheringStyle,
+  erodeStrength,
+  contrastStrength
 } = storeToRefs(settings)
 
 const version = import.meta.env.VITE_APP_VERSION
@@ -188,19 +222,31 @@ const changeDitheringStyle = (style: string) => {
   emit('settings-changed')
 }
 
-function changeDitherStrength(e: Event) {
+function changeStrength(e: Event, type: 'dither' | 'erode' | 'contrast') {
   if(!e.target) return
 
   const strength = (e.target as HTMLInputElement).value
 
-  if(selectedStyle.value === 'grid') {
-    const value = Number(strength) - 1
+  switch(type){
+    case 'dither':
+      if(selectedStyle.value === 'grid') {
+        if(type === 'dither'){
+          const value = Number(strength) - 1
 
-    const step = [2, 4, 8]
+          const step = [2, 4, 8]
 
-    settings.setDitherStrength(step[value] as number)
-  }else{
-    settings.setDitherStrength(Number(strength))
+          settings.setDitherStrength(step[value] as number)
+        }
+      }else{
+        settings.setDitherStrength(Number(strength))
+      }
+    break;
+    case 'erode':
+      settings.setErodeStrength(Number(strength))
+    break;
+    case 'contrast':
+      settings.setContrastStrength(Number(strength))
+    break;
   }
 
   emit('settings-changed')
@@ -221,6 +267,8 @@ function changeDitherStrength(e: Event) {
   padding: 32px 24px;
   border-right: 1px solid var(--px-grid);
   background: var(--px-surface);
+  max-height: 100vh;
+  overflow-y: scroll;
 }
 .brand-lockup h1 {
   margin: 7px 10px 14px 0px;
@@ -229,6 +277,12 @@ function changeDitherStrength(e: Event) {
   font-weight: 400;
   letter-spacing: -0.04em;
 }
+
+/* .title > img {
+  margin: 7px 10px 14px 0px;
+  width: 70%;
+} */
+
 .eyebrow,
 .tool-label,
 output {
@@ -348,10 +402,10 @@ button:focus-visible {
     border-right: 0;
     border-bottom: 1px solid var(--px-grid);
   }
-  /* .tool-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: 28px;
+  /* .title > img {
+    width: 50%;
   } */
+
   .actions {
     align-content: end;
   }
