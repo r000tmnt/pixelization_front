@@ -136,7 +136,7 @@
             <input
               type="range"
               v-model="contrastStrength"
-              min="-60" max="60" step="5"
+              min="-60" max="60" step="1"
               @change="(e) => changeStrength(e, 'contrast')"
               style="width:100%"
             />
@@ -149,13 +149,15 @@
     </div>
     <footerSection
       v-if="!isPad"
-
+      class="tool-footer"
+      :style="{padding: `${checkViewPort? 'unset' : '30px 0 0 0'}`}"
     />
   </aside>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { computed } from 'vue';
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts';
 import footerSection from './footerSection.vue';
@@ -191,6 +193,14 @@ const {
 } = storeToRefs(settings)
 
 const version = import.meta.env.VITE_APP_VERSION
+
+const checkViewPort = computed(() => {
+  if(selectedPalette.value !== 'original' && window.innerHeight < 800){
+    return false
+  }
+
+  return true
+})
 
 const changePixelSize = (size: number) => {
   if (selectedSize.value === size) return
@@ -260,6 +270,8 @@ function changeStrength(e: Event, type: 'dither' | 'erode' | 'contrast') {
 }
 
 .tool-rail {
+  display: flex;
+  flex-direction: column;
   position: sticky;
   top: 0;
   align-self: start;
@@ -268,7 +280,7 @@ function changeStrength(e: Event, type: 'dither' | 'erode' | 'contrast') {
   border-right: 1px solid var(--px-grid);
   background: var(--px-surface);
   max-height: 100vh;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 .brand-lockup h1 {
   margin: 7px 10px 14px 0px;
@@ -307,6 +319,9 @@ output {
   display: grid;
   gap: 27px;
   margin-top: 42px;
+}
+.tool-footer {
+  margin-top: auto;
 }
 .tool-section {
   display: grid;
@@ -378,6 +393,10 @@ button {
 }
 .actions {
   grid-template-columns: 1fr 1fr;
+}
+
+input[type='range']{
+  accent-color: var(--px-azure);
 }
 
 button:focus-visible {
