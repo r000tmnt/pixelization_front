@@ -132,3 +132,11 @@ input[type='range']{
   width: 100%;
   accent-color: var(--px-azure);
 }
+
+.slider > label{
+  white-space: nowrap;
+}
+
+.slider > div {
+  width: 40px;
+}
