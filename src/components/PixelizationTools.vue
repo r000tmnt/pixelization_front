@@ -100,7 +100,6 @@
               v-model="ditherStrength"
               min="0" max="1" step="0.05"
               @input="(e) => changeStrength(e, 'dither')"
-              style="width:100%"
             />
 
             <input
@@ -123,7 +122,6 @@
               v-model="erodeStrength"
               min="0" max="3" step="1"
               @input="(e) => changeStrength(e, 'erode')"
-              style="width:100%"
             />
 
             <div>{{ erodeStrength }}</div>
@@ -138,7 +136,6 @@
               v-model="contrastStrength"
               min="-60" max="60" step="1"
               @input="(e) => changeStrength(e, 'contrast')"
-              style="width:100%"
             />
 
             <div>{{ contrastStrength }}</div>
@@ -393,10 +390,6 @@ button {
 }
 .actions {
   grid-template-columns: 1fr 1fr;
-}
-
-input[type='range']{
-  accent-color: var(--px-azure);
 }
 
 button:focus-visible {
