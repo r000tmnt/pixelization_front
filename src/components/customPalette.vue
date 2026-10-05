@@ -158,6 +158,10 @@
     transition: all 0.3s ease;
   }
 
+  .slider > label{
+    white-space: nowrap;
+  }
+
   .color-grid{
     display: grid;
     /* grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); */
