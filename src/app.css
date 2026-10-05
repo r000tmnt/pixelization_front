@@ -127,3 +127,8 @@ input {
   cursor: pointer;
   border-radius: 8px;
 }
+
+input[type='range']{
+  width: 100%;
+  accent-color: var(--px-azure);
+}
