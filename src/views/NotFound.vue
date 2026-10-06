@@ -14,9 +14,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useDefaultStore } from '@/stores/default'
+import { storeToRefs } from 'pinia'
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const defaultStore = useDefaultStore()
+const { readableFont } = storeToRefs(defaultStore)
 
 const counter = ref<number>(0)
 const sec = ref<number>(5)
@@ -30,6 +34,9 @@ onMounted(() => {
     locale.value = storedLocale
   }
 
+  if(readableFont.value) {
+    font.value = 'var(--font-ui)'
+  } else
   if(storedLocale !== 'us') {
     font.value = 'BoutiqueBitmap9x9'
   } else {
