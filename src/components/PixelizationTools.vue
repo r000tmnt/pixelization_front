@@ -157,7 +157,7 @@ import { computed } from 'vue';
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts';
 import footerSection from './footerSection.vue';
-import SettingToggle from '@/components/settingToggle.vue'
+import SettingToggle from './SettingToggle.vue'
 
 defineProps<{
   hasArtwork: boolean
