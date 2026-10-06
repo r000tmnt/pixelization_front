@@ -19,6 +19,7 @@
     "label-contrast": "對比",
     "label-status": "狀態",
     "label-custom": "客製化顏色",
+    "label-custom-description": "設定要依圖片由暗至亮套用的顏色。增加顏色數量可呈現更多明度層次；選擇的顏色會依明度順序映射到圖片。",
     "label-custom-color": "顏色數量",
     "label-custom-apply": "套用",
     "label-custom-cancel": "取消",

@@ -4,8 +4,9 @@
     <div class="content">
       <div class="dialog-header">
         <h3>{{ $t("label-custom") }}</h3>
-        <!-- <button class="close secondary" @click="emit('close')">X</button> -->
       </div>
+
+      <p class="description">{{ $t("label-custom-description") }}</p>
 
       <div class="slider sub-tool">
         <label>{{ $t("label-custom-color") }}</label>
@@ -135,6 +136,12 @@
 </script>
 
 <style scoped>
+  .description {
+    margin: 0 0 12px;
+    color: var(--px-text-muted);
+    line-height: 1.5;
+  }
+
   .wrapper {
     position: absolute;
     width: 100%;

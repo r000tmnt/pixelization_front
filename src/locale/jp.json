@@ -19,6 +19,7 @@
   "label-contrast": "コントラスト",
   "label-status": "ステータス",
   "label-custom": "カスタムカラー",
+  "label-custom-description": "画像の暗い部分から明るい部分へ適用する色を設定します。色数を増やすと、より細かな明るさの段階を表現できます。選んだ色は明るさの順に画像へ割り当てられます。",
   "label-custom-color": "色数",
   "label-custom-apply": "適用",
   "label-custom-cancel": "キャンセル",
