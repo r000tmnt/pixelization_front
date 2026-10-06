@@ -36,5 +36,6 @@
     "error-size": "檔案超過上限",
     "error-failed": "無法轉換，請另選圖片",
     "download": "下載",
-    "language": "語言"
+    "language": "語言",
+    "404": "你迷路了嗎？{sec} 秒後返回首頁。"
 }
