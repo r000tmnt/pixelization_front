@@ -149,3 +149,10 @@ input[type='range']{
 .slider > div {
   width: 40px;
 }
+
+.custom-dialog{
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-md, 10px);
+  background: var(--px-surface);
+  box-shadow: var(--shadow-glow);
+}
