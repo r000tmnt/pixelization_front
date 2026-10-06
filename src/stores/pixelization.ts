@@ -67,7 +67,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     selectedStyle: 'default',
     selectedColors: [] as string[],
     ditherStrength: 0.35,
-    erodeStrength: 2,
+    erodeStrength: 1,
     contrastStrength: 2,
     sizeLimitMB: 5,
   }),
