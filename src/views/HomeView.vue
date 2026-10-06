@@ -93,7 +93,7 @@ import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
-import SettingToggle from '@/components/settingToggle.vue'
+import SettingToggle from '@/components/SettingToggle.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'

@@ -83,6 +83,7 @@
               role="radio"
               :aria-checked="selectedStyle === style.id"
               :class="{ active: selectedStyle === style.id }"
+              :style="{ 'font-size': `${lang === 'tw'? '0.9rem' : '0.82rem'}` }"
               @click="changeDitheringStyle(style.id)"
             >
               {{ $t(`label-dither-${style.id}`) }}
@@ -174,7 +175,7 @@ const emit = defineEmits<{
 }>()
 
 const settings = usePixelizationStore()
-const { isPad } = storeToRefs(useDefaultStore())
+const { isPad, lang } = storeToRefs(useDefaultStore())
 
 const {
   palettes,
