@@ -417,7 +417,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .upload-zone strong {
-  font-family: var(--font-display);
+  /* font-family: var(--font-display); */
   font-size: clamp(1rem, 2vw, 1.25rem);
 }
 .upload-zone small {
