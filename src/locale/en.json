@@ -19,6 +19,7 @@
     "label-contrast": "Contrast",
     "label-status": "Status",
     "label-custom": "Custom Palette",
+    "label-custom-description": "Choose the colors to apply across the image from dark to light. More colors create more brightness levels; the selected colors are mapped to the image in brightness order.",
     "label-custom-color": "Range of color",
     "label-custom-apply": "Apply",
     "label-custom-cancel": "Cancel",

@@ -170,6 +170,7 @@ const emit = defineEmits<{
   'choose-image': [];
   'export-image': [];
   'settings-changed': [],
+  'settings-changed-debounced': [],
   'open-custom-palette': []
   'show-locale': [value: boolean]
 }>()
@@ -256,7 +257,11 @@ const changeStrength = (e: Event, type: 'dither' | 'erode' | 'contrast') =>{
     break;
   }
 
-  emit('settings-changed')
+  if (type === 'dither' || type === 'contrast') {
+    emit('settings-changed-debounced')
+  } else {
+    emit('settings-changed')
+  }
 }
 </script>
 
@@ -410,9 +415,11 @@ button:focus-visible {
   .tool-rail {
     position: static;
     min-height: auto;
+    max-height: none;
     padding: 24px;
     border-right: 0;
     border-bottom: 1px solid var(--px-grid);
+    overflow: visible;
   }
   /* .title > img {
     width: 50%;
@@ -433,6 +440,25 @@ button:focus-visible {
     margin: 10px 0;
   }
 
+  .tool-section > .slider.sub-tool {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) 2.5rem;
+    gap: 12px;
+    min-height: 44px;
+    margin: 14px 0;
+  }
+
+  .tool-section > .slider.sub-tool > input[type='range'] {
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .tool-section > .slider.sub-tool > div {
+    width: auto;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
   .palette-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

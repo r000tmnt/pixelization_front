@@ -7,6 +7,7 @@
       @choose-image="openFilePicker"
       @export-image="downloadArtwork"
       @settings-changed="reprocessArtwork"
+      @settings-changed-debounced="scheduleReprocessArtwork"
       @open-custom-palette="toggleCustomPalette"
       @show-locale="(v) => showLocale = v"
     />
@@ -93,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, onMounted } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
@@ -124,6 +125,9 @@ const isDragging = ref(false)
 const errorMessage = ref('')
 // const imageDetails = ref('')
 const openCustomPalette = ref(false)
+const reprocessDebounceMs = 250
+let reprocessTimer: ReturnType<typeof setTimeout> | undefined
+let latestRequestId = 0
 const hasArtwork = computed(() => sourceFile.value !== null)
 const status = computed(() =>
   isProcessing.value
@@ -201,6 +205,7 @@ const handleDrop = (event: DragEvent) => {
 }
 
 const reprocessArtwork = () => {
+  clearTimeout(reprocessTimer)
   if (sourceFile.value) {
 
     if (openCustomPalette.value) {
@@ -211,12 +216,25 @@ const reprocessArtwork = () => {
   }
 }
 
+const scheduleReprocessArtwork = () => {
+  clearTimeout(reprocessTimer)
+  if (!sourceFile.value || openCustomPalette.value) return
+  // Invalidate any conversion already running with the previous slider value.
+  latestRequestId++
+  reprocessTimer = setTimeout(() => {
+    reprocessTimer = undefined
+    reprocessArtwork()
+  }, reprocessDebounceMs)
+}
+
 const processFile = async(file: File) => {
   // if (!file.type.startsWith('image/')) {
   //   errorMessage.value = 'Choose an image file to begin.'
   //   return
   // }
+  clearTimeout(reprocessTimer)
   sourceFile.value = file
+  const requestId = ++latestRequestId
   errorMessage.value = ''
   isProcessing.value = true
   const form = new FormData()
@@ -255,21 +273,23 @@ const processFile = async(file: File) => {
       canvasElement.style.height = isLandscape ?'auto' : '100%'
     }
 
-    await drawArtwork(result.data.data, result.data.width, result.data.height)
+    if (requestId !== latestRequestId) return
+    await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
 
     console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
+    if (requestId !== latestRequestId) return
     console.log(error)
     sourceFile.value = null
     errorMessage.value = t('error-failed')
     // console.error('Pixelization failed:', error)
   } finally {
-    isProcessing.value = false
+    if (requestId === latestRequestId) isProcessing.value = false
   }
 }
 
-const drawArtwork = async(dataUrl: string, width: number, height: number) => {
+const drawArtwork = async(dataUrl: string, width: number, height: number, requestId?: number) => {
   await nextTick()
   const target = canvas.value
   if (!target) throw new Error('Canvas unavailable')
@@ -279,6 +299,7 @@ const drawArtwork = async(dataUrl: string, width: number, height: number) => {
     image.onerror = () => reject(new Error('Image failed to load'))
     image.src = dataUrl
   })
+  if (requestId !== undefined && requestId !== latestRequestId) return
   target.width = width
   target.height = height
   const context = target.getContext('2d')
@@ -313,6 +334,11 @@ onMounted(() => {
   if(locale){
     setLocale(locale)
   }
+})
+
+onUnmounted(() => {
+  clearTimeout(reprocessTimer)
+  latestRequestId++
 })
 </script>
 
