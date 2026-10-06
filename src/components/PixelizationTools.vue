@@ -170,6 +170,7 @@ const emit = defineEmits<{
   'choose-image': [];
   'export-image': [];
   'settings-changed': [],
+  'settings-changed-debounced': [],
   'open-custom-palette': []
   'show-locale': [value: boolean]
 }>()
@@ -256,7 +257,11 @@ const changeStrength = (e: Event, type: 'dither' | 'erode' | 'contrast') =>{
     break;
   }
 
-  emit('settings-changed')
+  if (type === 'dither' || type === 'contrast') {
+    emit('settings-changed-debounced')
+  } else {
+    emit('settings-changed')
+  }
 }
 </script>
 
