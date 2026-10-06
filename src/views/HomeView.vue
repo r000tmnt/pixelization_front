@@ -3,13 +3,12 @@
     <PixelizationTools
       :has-artwork="hasArtwork"
       :is-processing="isProcessing"
-      :show-locale="showLocale"
       @choose-image="openFilePicker"
       @export-image="downloadArtwork"
       @settings-changed="reprocessArtwork"
       @settings-changed-debounced="scheduleReprocessArtwork"
       @open-custom-palette="toggleCustomPalette"
-      @show-locale="(v) => showLocale = v"
+      @show-settings="(v) => showSettings = v"
     />
     <section class="artwork-zone" aria-labelledby="stage-title">
       <input
@@ -21,19 +20,14 @@
         @change="handleFileInput"
       />
       <div class="stage-meta">
-        <div>
-          <!-- <p class="eyebrow">{{ $t('label-status') }}</p> -->
-          <!-- <h2 id="stage-title">
-            {{ hasArtwork ? 'Your pixel art is ready.' : 'Make pixels from a photo.' }}
-          </h2> -->
+        <div class="stage-status">
           <div class="status-row" aria-live="polite">
             <span :class="['status-dot', status.type]" aria-hidden="true"></span
             ><span>{{ $t(status.label) }}</span>
           </div>
         </div>
 
-        <localeButton v-if="!isPad" :value="showLocale" @show-option="(v) => showLocale = v" />
-        <!-- <p v-if="imageDetails" class="image-details">{{ imageDetails }}</p> -->
+        <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
       </div>
       <div
         :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
@@ -83,9 +77,9 @@
     </Transition>
 
     <Transition name="fade">
-      <localeDialog
-        v-if="showLocale"
-        @close="showLocale = false"
+      <SettingsDialog
+        v-if="showSettings"
+        @close="showSettings = false"
       />
     </Transition>
 
@@ -98,8 +92,8 @@ import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
-import localeButton from '@/components/localeButton.vue'
-import localeDialog from '@/components/localeDialog.vue'
+import SettingsDialog from '@/components/SettingsDialog.vue'
+import SettingToggle from '@/components/settingToggle.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -115,7 +109,7 @@ const { setIsPad, setLocale } = defaultStore
 
 const { t } = useI18n()
 
-const showLocale = ref<boolean>(false)
+const showSettings = ref(false)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -417,7 +411,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .upload-zone strong {
-  font-family: var(--font-display);
+  /* font-family: var(--font-display); */
   font-size: clamp(1rem, 2vw, 1.25rem);
 }
 .upload-zone small {
@@ -521,6 +515,11 @@ button:focus-visible {
   /* margin-top: 42px; */
   color: var(--px-text-muted);
 }
+.stage-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 .status-dot {
   width: 7px;
   height: 7px;
@@ -570,9 +569,8 @@ button:focus-visible {
     padding: 24px 16px;
   }
   .stage-meta {
-    align-items: start;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
   }
   .image-details {
     white-space: normal;

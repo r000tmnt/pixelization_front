@@ -1,22 +1,25 @@
 <template>
-  <router-view />
+  <router-view id="view" />
 </template>
 
 <script setup lang="ts">
   import { useDefaultStore } from './stores/default';
   import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n'
-  import { watch, computed  } from 'vue'
+  import { watch, computed } from 'vue'
   import { useSeoMeta } from '@unhead/vue';
 
   const defaultStore = useDefaultStore()
 
   const { setScrollTop } = defaultStore
-  const { lang } = storeToRefs(defaultStore)
+  const { lang, readableFont } = storeToRefs(defaultStore)
 
   const { locale, t } = useI18n()
+  locale.value = lang.value
 
-  // const title = ref<string>('PIXELIZATION')
+  const font = computed(() => readableFont.value
+    ? 'var(--font-ui)'
+    : lang.value !== 'us' ? 'BoutiqueBitmap9x9' : 'Pixelify Sans')
 
   const pageTitle = computed(() => t('title-html'))
 
@@ -39,5 +42,12 @@
     if(newLang){
       locale.value = newLang
     }
+
   })
 </script>
+
+<style>
+  #view {
+    font-family: v-bind(font), var(--font-display);
+  }
+</style>

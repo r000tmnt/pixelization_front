@@ -20,6 +20,15 @@
   --shadow-glow: 0 0 24px rgb(157 92 255 / 18%);
 }
 
+@font-face {
+  font-family: 'BoutiqueBitmap9x9';
+  src: url('fonts/BoutiqueBitmap9x9_1.93.ttf') format('truetype');
+  /* 如果有 woff2 格式，建議優先使用：
+  src: url('fonts/BoutiqueBitmap9x9.woff2') format('woff2'); */
+  font-weight: normal;
+  font-style: normal;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -77,7 +86,7 @@ input {
   min-height: 44px;
   padding: 0 12px;
   border-radius: var(--radius-sm);
-  font-family: var(--font-display);
+  /* font-family: var(--font-display); */
   font-weight: 600;
   cursor: pointer;
 }
@@ -139,4 +148,11 @@ input[type='range']{
 
 .slider > div {
   width: 40px;
+}
+
+.custom-dialog{
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-md, 10px);
+  background: var(--px-surface);
+  box-shadow: var(--shadow-glow);
 }

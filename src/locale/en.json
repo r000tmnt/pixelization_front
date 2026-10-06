@@ -36,5 +36,11 @@
     "error-size": "File size limit exceeded.",
     "error-failed": "We could not pixelize that image. Please try another file.",
     "download": "DOWNLOAD",
-    "language": "Language"
+    "language": "Language",
+    "settings": "Settings",
+    "close": "Close",
+    "font-label": "Interface font",
+    "font-pixel": "Pixel",
+    "font-readable": "Clear",
+    "404": "Are you lost? Return to home page after {sec} seconds."
 }
