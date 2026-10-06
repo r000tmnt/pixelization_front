@@ -37,5 +37,10 @@
     "error-failed": "無法轉換，請另選圖片",
     "download": "下載",
     "language": "語言",
+    "settings": "設定",
+    "close": "關閉",
+    "font-label": "介面字型",
+    "font-pixel": "點陣",
+    "font-readable": "清晰",
     "404": "你迷路了嗎？{sec} 秒後返回首頁。"
 }
