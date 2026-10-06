@@ -229,7 +229,7 @@ const changeDitheringStyle = (style: string) => {
   emit('settings-changed')
 }
 
-function changeStrength(e: Event, type: 'dither' | 'erode' | 'contrast') {
+const changeStrength = (e: Event, type: 'dither' | 'erode' | 'contrast') =>{
   if(!e.target) return
 
   const strength = (e.target as HTMLInputElement).value
