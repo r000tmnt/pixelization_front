@@ -6,17 +6,20 @@
   import { useDefaultStore } from './stores/default';
   import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n'
-  import { watch, computed, ref } from 'vue'
+  import { watch, computed } from 'vue'
   import { useSeoMeta } from '@unhead/vue';
 
   const defaultStore = useDefaultStore()
 
   const { setScrollTop } = defaultStore
-  const { lang } = storeToRefs(defaultStore)
+  const { lang, readableFont } = storeToRefs(defaultStore)
 
   const { locale, t } = useI18n()
+  locale.value = lang.value
 
-  const font = ref<string>('Pixelify Sans')
+  const font = computed(() => readableFont.value
+    ? 'var(--font-ui)'
+    : lang.value !== 'us' ? 'BoutiqueBitmap9x9' : 'Pixelify Sans')
 
   const pageTitle = computed(() => t('title-html'))
 
@@ -40,11 +43,6 @@
       locale.value = newLang
     }
 
-    if(newLang !== 'us') {
-      font.value = 'BoutiqueBitmap9x9'
-    } else {
-      font.value = 'Pixelify Sans'
-    }
   })
 </script>
 
