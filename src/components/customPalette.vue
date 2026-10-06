@@ -1,7 +1,7 @@
 <template>
   <div class="wrapper"
     :style="{ marginTop: `${scrollTop}px` }">
-    <div class="content">
+    <div class="content custom-dialog">
       <div class="dialog-header">
         <h3>{{ $t("label-custom") }}</h3>
       </div>
@@ -158,11 +158,11 @@
     min-width: 520px;
     /* height: 30%; */
     background: var(--px-surface);
-    border-radius: 4px;
+    /* border-radius: 4px; */
     padding: 5px 2% 23px 2%;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease;
+    /* transition: all 0.3s ease; */
   }
 
   .color-grid{
