@@ -301,7 +301,7 @@ const changeStrength = (e: Event, type: 'dither' | 'erode' | 'contrast') =>{
 .tool-label,
 output {
   margin: 0;
-  font-family: var(--font-mono);
+  /* font-family: var(--font-mono); */
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -345,16 +345,16 @@ output {
   border-radius: var(--radius-sm);
   background: var(--px-surface-raised);
 }
-button {
+/* button {
   font: inherit;
-}
+} */
 .segmented-control button {
   min-height: 38px;
   border: 0;
   border-radius: 5px;
   background: transparent;
   color: var(--px-text-muted);
-  font-family: var(--font-mono);
+  /* font-family: var(--font-mono); */
   font-size: 0.82rem;
   cursor: pointer;
 }
