@@ -19,7 +19,11 @@
 
   const font = computed(() => readableFont.value
     ? 'var(--font-ui)'
-    : lang.value !== 'us' ? 'BoutiqueBitmap9x9' : 'Pixelify Sans')
+    : 'Cubic_11' )
+
+  // const font = computed(() => readableFont.value
+  //   ? 'var(--font-ui)'
+  //   : lang.value !== 'us' ? 'BoutiqueBitmap9x9' : 'Pixelify Sans')
 
   const pageTitle = computed(() => t('title-html'))
 
