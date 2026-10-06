@@ -4,7 +4,8 @@ export const useDefaultStore = defineStore('default', {
   state: () => ({
     scrollTop: 0,
     isPad: false,
-    lang: 'us'
+    lang: localStorage.getItem('locale') || 'us',
+    readableFont: localStorage.getItem('readableFont') === 'true'
   }),
   getters: {
     activeScrollTop: (state) => {
@@ -21,6 +22,10 @@ export const useDefaultStore = defineStore('default', {
     setLocale (id: string) {
       this.lang = id
       localStorage.setItem('locale', id)
+    },
+    setReadableFont (enabled: boolean) {
+      this.readableFont = enabled
+      localStorage.setItem('readableFont', String(enabled))
     },
     setDisplayLang (locale: string) {
         switch(locale){
