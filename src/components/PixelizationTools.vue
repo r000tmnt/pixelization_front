@@ -7,11 +7,10 @@
           <!-- <img src="/pixelization_logo.png" alt="logo" /> -->
           <small>v {{ version }}</small>
 
-           <localeButton
+          <SettingToggle
             v-if="isPad"
-            :value="showLocale"
-            @show-option="(v) => emit('show-locale', v)"
-            style="margin-left: auto;"
+            style="margin-left: auto"
+            @settings-changed="(v) => emit('show-settings', v)"
           />
        </div>
 
@@ -158,12 +157,11 @@ import { computed } from 'vue';
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts';
 import footerSection from './footerSection.vue';
-import localeButton from './localeButton.vue';
+import SettingToggle from '@/components/settingToggle.vue'
 
 defineProps<{
   hasArtwork: boolean
-  isProcessing: boolean,
-  showLocale: boolean
+  isProcessing: boolean
 }>()
 
 const emit = defineEmits<{
@@ -171,8 +169,8 @@ const emit = defineEmits<{
   'export-image': [];
   'settings-changed': [],
   'settings-changed-debounced': [],
-  'open-custom-palette': []
-  'show-locale': [value: boolean]
+  'open-custom-palette': [],
+  'show-settings': [value: boolean]
 }>()
 
 const settings = usePixelizationStore()
@@ -270,7 +268,6 @@ const changeStrength = (e: Event, type: 'dither' | 'erode' | 'contrast') =>{
   display: flex;
   align-items: baseline;
 }
-
 .tool-rail {
   display: flex;
   flex-direction: column;
