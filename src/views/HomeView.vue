@@ -302,13 +302,35 @@ const drawArtwork = async(dataUrl: string, width: number, height: number, reques
   context.drawImage(image, 0, 0, width, height)
 }
 
-const downloadArtwork = () => {
+const downloadArtwork = async() => {
   const target = canvas.value
   if (!target) return
-  const link = document.createElement('a')
-  link.download = 'pixelization-artwork.png'
-  link.href = target.toDataURL('image/png')
-  link.click()
+
+  console.log(navigator.platform);
+
+  const isApple = /iPad|iPhone/.test(navigator.platform) || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+
+  if(isApple){
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      target.toBlob((result) => result ? resolve(result) : reject(new Error('Failed to create image blob')), 'image/png')
+    })
+    const file = new File([blob], 'pixelization-artwork.png', { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+          await navigator.share({ files: [file], title: 'Canvas Screenshot' });
+      }
+      catch (e) {
+        console.log(e)
+          /* 使用者取消 */
+      }
+    }
+  }else{
+    const link = document.createElement('a')
+    link.download = 'pixelization-artwork.png'
+    link.href = target.toDataURL('image/png')
+    link.click()
+  }
 }
 
 const toggleCustomPalette = () => {
