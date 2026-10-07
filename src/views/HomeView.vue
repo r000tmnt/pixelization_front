@@ -120,6 +120,7 @@ const errorMessage = ref('')
 // const imageDetails = ref('')
 const openCustomPalette = ref(false)
 const reprocessDebounceMs = 250
+const conversionRetryDelayMs = 750
 let reprocessTimer: ReturnType<typeof setTimeout> | undefined
 let latestRequestId = 0
 const hasArtwork = computed(() => sourceFile.value !== null)
@@ -221,6 +222,18 @@ const scheduleReprocessArtwork = () => {
   }, reprocessDebounceMs)
 }
 
+const isRetryableConversionError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false
+
+  const requestError = error as {
+    code?: string
+    response?: { status?: number }
+  }
+
+  return [502, 503, 504].includes(requestError.response?.status ?? 0)
+    || ['ERR_NETWORK', 'ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED'].includes(requestError.code ?? '')
+}
+
 const processFile = async(file: File) => {
   // if (!file.type.startsWith('image/')) {
   //   errorMessage.value = 'Choose an image file to begin.'
@@ -249,7 +262,19 @@ const processFile = async(file: File) => {
   }
 
   try {
-    const result = await pixelApi.convert(form)
+    let result: Awaited<ReturnType<typeof pixelApi.convert>> | undefined
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        result = await pixelApi.convert(form)
+        break
+      } catch (error) {
+        if (attempt === 1 || !isRetryableConversionError(error)) throw error
+        await new Promise((resolve) => setTimeout(resolve, conversionRetryDelayMs))
+        if (requestId !== latestRequestId) return
+      }
+    }
+
+    if (!result) throw new Error('Conversion failed after retry')
     if (!result?.data?.data || !result.data.width || !result.data.height)
       throw new Error('Invalid conversion response')
 
