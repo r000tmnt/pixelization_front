@@ -32,12 +32,12 @@
             <label v-for="(color, index) in colors" :key="index" class="palette-color">
               <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
               <code>{{ color.toUpperCase() }}</code>
-              <!-- <input
+              <input
                 type="color"
                 :value="color"
                 :aria-label="$t('palette-color') + ' ' + (index + 1)"
                 @change="(event) => emit('change-color', index, (event.target as HTMLInputElement).value)"
-              /> -->
+              />
             </label>
           </div>
           <footer class="palette-actions">
@@ -259,8 +259,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 .palette-description { margin: 8px 0 14px; color: var(--px-text-muted); font-size: 0.8rem; line-height: 1.45; }
 .palette-list { display: grid; gap: 7px; min-height: 0; overflow: auto; }
 .palette-color {
+  position: relative;
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) 36px;
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   min-height: 42px;
@@ -269,10 +270,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   border-radius: var(--radius-sm);
   color: var(--px-text);
   font-size: 0.8rem;
+  cursor: pointer;
 }
 .palette-swatch { width: 20px; height: 20px; border: 1px solid var(--px-grid); border-radius: 3px; }
-.palette-color input { width: 34px; height: 30px; padding: 2px; border: 1px solid var(--px-grid); border-radius: 4px; background: transparent; cursor: pointer; }
-.palette-color code { grid-column: 2 / 4; color: var(--px-text-muted); font-size: 0.7rem; }
+.palette-color input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.palette-color code { grid-column: 2 / 3; color: var(--px-text-muted); font-size: 0.7rem; }
 .palette-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; }
 .palette-actions button,
 .palette-toggle {
