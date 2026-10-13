@@ -9,7 +9,12 @@
       tabindex="-1"
     >
       <header class="preview-header">
-        <h2 id="preview-title">{{ $t('preview') }}</h2>
+        <div class="preview-title-group">
+          <h2 id="preview-title">{{ $t('preview-edit') }}</h2>
+          <button v-if="colors.length" class="palette-toggle" type="button" @click="showPalettePanel = !showPalettePanel">
+            {{ showPalettePanel ? $t('hide-palette') : $t('show-palette') }}
+          </button>
+        </div>
         <div class="preview-controls">
           <button type="button" :aria-label="$t('zoom-out')" :disabled="zoom <= MIN_ZOOM" @click="zoomAtCenter(zoom - ZOOM_STEP)">−</button>
           <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
@@ -19,7 +24,28 @@
           <button class="close-button" type="button" :aria-label="$t('close')" @click="emit('close')">×</button>
         </div>
       </header>
-      <div
+      <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': colors.length > 0 }">
+        <aside v-if="colors.length" class="palette-drawer" :aria-label="$t('edit-colors')">
+          <h3>{{ $t('edit-colors') }}</h3>
+          <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
+          <div class="palette-list">
+            <label v-for="(color, index) in colors" :key="index" class="palette-color">
+              <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
+              <code>{{ color.toUpperCase() }}</code>
+              <!-- <input
+                type="color"
+                :value="color"
+                :aria-label="$t('palette-color') + ' ' + (index + 1)"
+                @change="(event) => emit('change-color', index, (event.target as HTMLInputElement).value)"
+              /> -->
+            </label>
+          </div>
+          <footer class="palette-actions">
+            <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
+            <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button>
+          </footer>
+        </aside>
+        <div
         ref="viewport"
         class="preview-viewport"
         :class="{ 'is-panning': isPanning }"
@@ -28,14 +54,15 @@
         @pointermove="movePan"
         @pointerup="stopPan"
         @pointercancel="stopPan"
-      >
-        <img
+        >
+          <img
           :src="src"
           :alt="$t('preview-image-alt')"
           :style="imageStyle"
           draggable="false"
-          @load="fitImage"
-        />
+            @load="onImageLoad"
+          />
+        </div>
       </div>
       <p class="preview-hint">{{ $t('preview-hint') }}</p>
     </section>
@@ -45,8 +72,18 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
-defineProps<{ src: string }>()
-const emit = defineEmits<{ close: [] }>()
+defineProps<{
+  src: string
+  colors: string[]
+  canUndo: boolean
+  canRedo: boolean
+}>()
+const emit = defineEmits<{
+  close: []
+  'change-color': [index: number, color: string]
+  undo: []
+  redo: []
+}>()
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 4
@@ -57,6 +94,8 @@ const zoom = ref(1)
 const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
+const showPalettePanel = ref(false)
+let fitDimensions = ''
 let panPointerId: number | null = null
 let lastPointerX = 0
 let lastPointerY = 0
@@ -102,6 +141,14 @@ const fitImage = async () => {
   offsetY.value = 0
 }
 
+const onImageLoad = async (event: Event) => {
+  const picture = event.target as HTMLImageElement
+  const dimensions = `${picture.naturalWidth}x${picture.naturalHeight}`
+  if (dimensions === fitDimensions) return
+  fitDimensions = dimensions
+  await fitImage()
+}
+
 const startPan = (event: PointerEvent) => {
   if (event.button !== 0 || !viewport.value) return
   isPanning.value = true
@@ -130,6 +177,7 @@ const onKeyDown = (event: KeyboardEvent) => {
 }
 
 onMounted(() => {
+  showPalettePanel.value = window.innerWidth > 899
   dialog.value?.focus()
   window.addEventListener('keydown', onKeyDown)
 })
@@ -166,6 +214,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   gap: 16px;
   padding: 0 0 12px;
 }
+.preview-title-group { display: flex; align-items: center; gap: 12px; }
 .preview-header h2 { margin: 0; font-size: 1.1rem; }
 .preview-controls button {
   min-width: 36px;
@@ -186,6 +235,57 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   text-align: center;
 }
 .preview-controls .close-button { font-size: 1.4rem; line-height: 1; }
+.palette-toggle { display: none; }
+.preview-workspace {
+  position: relative;
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  gap: 12px;
+}
+.preview-workspace:not(.has-palette) { grid-template-columns: minmax(0, 1fr); }
+.palette-drawer {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-sm);
+  background: var(--px-surface);
+}
+.palette-drawer h3 { margin: 0; font-size: 1rem; }
+.palette-description { margin: 8px 0 14px; color: var(--px-text-muted); font-size: 0.8rem; line-height: 1.45; }
+.palette-list { display: grid; gap: 7px; min-height: 0; overflow: auto; }
+.palette-color {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 5px 7px;
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-sm);
+  color: var(--px-text);
+  font-size: 0.8rem;
+}
+.palette-swatch { width: 20px; height: 20px; border: 1px solid var(--px-grid); border-radius: 3px; }
+.palette-color input { width: 34px; height: 30px; padding: 2px; border: 1px solid var(--px-grid); border-radius: 4px; background: transparent; cursor: pointer; }
+.palette-color code { grid-column: 2 / 4; color: var(--px-text-muted); font-size: 0.7rem; }
+.palette-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 12px; }
+.palette-actions button,
+.palette-toggle {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-sm);
+  background: var(--px-surface-raised);
+  color: var(--px-text);
+  font: inherit;
+  cursor: pointer;
+}
+.palette-actions button:disabled { opacity: 0.45; cursor: default; }
 .preview-viewport {
   position: relative;
   min-width: 0;
@@ -212,7 +312,23 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 }
 .preview-hint { margin: 10px 0 0; color: var(--px-text-muted); font-size: 0.78rem; text-align: center; }
 button:focus-visible,
-.preview-dialog:focus-visible { outline: 2px solid var(--px-azure); outline-offset: 2px; }
+.preview-dialog:focus-visible,
+.palette-color input:focus-visible { outline: 2px solid var(--px-azure); outline-offset: 2px; }
+@media (max-width: 899px) {
+  .preview-workspace { grid-template-columns: minmax(0, 1fr); }
+  .palette-toggle { display: inline-flex; align-items: center; }
+  .palette-drawer { display: none; }
+  .preview-workspace.palette-open .palette-drawer {
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    max-height: 58%;
+    box-shadow: 0 -12px 30px rgb(0 0 0 / 45%);
+  }
+}
 @media (max-width: 620px) {
   .preview-header { align-items: flex-start; flex-direction: column; }
   .preview-controls { width: 100%; gap: 5px; }
