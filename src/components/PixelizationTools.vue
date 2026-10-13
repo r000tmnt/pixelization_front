@@ -46,7 +46,7 @@
         </div>
         <div class="palette-options" role="radiogroup" aria-label="Pick a palette">
           <button
-            v-for="palette in palettes"
+            v-for="palette in visiblePalettes"
             :key="palette.id"
             type="button"
             role="radio"
@@ -170,7 +170,6 @@ const emit = defineEmits<{
   'export-image': [];
   'settings-changed': [],
   'settings-changed-debounced': [],
-  'open-custom-palette': [],
   'show-settings': [value: boolean]
 }>()
 
@@ -189,6 +188,8 @@ const {
   contrastStrength
 } = storeToRefs(settings)
 
+const visiblePalettes = computed(() => palettes.value.filter((palette) => palette.id !== 'custom'))
+
 const version = import.meta.env.VITE_APP_VERSION
 
 const checkViewPort = computed(() => {
@@ -206,10 +207,6 @@ const changePixelSize = (size: number) => {
 }
 
 const changePalette = (palette: string) => {
-  if(palette === 'custom') {
-    emit('open-custom-palette')
-  }
-
   if (selectedPalette.value === palette) return
   settings.setPalette(palette)
 
