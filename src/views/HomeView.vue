@@ -54,9 +54,15 @@
         <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
       </div>
       <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
-        <!-- <button class="button primary" type="button" @click="emit('choose-image')">
-          {{ hasArtwork ? 'Replace image' : 'Choose an image' }}
-        </button> -->
+        <button
+          ref="previewButton"
+          class="button secondary"
+          type="button"
+          :disabled="!hasArtwork || isProcessing"
+          @click="openPreview"
+        >
+          {{ $t("preview") }}
+        </button>
         <button
           class="button secondary"
           type="button"
@@ -83,17 +89,26 @@
       />
     </Transition>
 
+    <Transition name="fade">
+      <ImagePreviewDialog
+        v-if="showPreview && previewImage"
+        :src="previewImage"
+        @close="closePreview"
+      />
+    </Transition>
+
     <footerSection v-if="isPad" />
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import SettingToggle from '@/components/SettingToggle.vue'
+import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -110,6 +125,9 @@ const { setIsPad, setLocale } = defaultStore
 const { t } = useI18n()
 
 const showSettings = ref(false)
+const showPreview = ref(false)
+const previewImage = ref('')
+const previewButton = ref<HTMLButtonElement | null>(null)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -147,6 +165,23 @@ const {
 const openFilePicker = () => {
   fileInput.value?.click()
 }
+
+const openPreview = () => {
+  const target = canvas.value
+  if (!target || isProcessing.value) return
+  previewImage.value = target.toDataURL('image/png')
+  showPreview.value = true
+}
+
+const closePreview = () => {
+  showPreview.value = false
+}
+
+watch(showPreview, async (isOpen) => {
+  if (isOpen) return
+  await nextTick()
+  previewButton.value?.focus()
+})
 
 const checkFileType = (file: File | undefined) => {
   const type = file?.type
