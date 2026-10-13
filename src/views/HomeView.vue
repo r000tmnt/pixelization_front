@@ -64,6 +64,15 @@
           {{ $t("preview") }}
         </button>
         <button
+          v-if="canEditPalette"
+          class="button secondary"
+          type="button"
+          :disabled="isProcessing"
+          @click="showPaletteEditor = true"
+        >
+          {{ $t("edit-colors") }}
+        </button>
+        <button
           class="button secondary"
           type="button"
           :disabled="!hasArtwork || isProcessing"
@@ -97,6 +106,19 @@
       />
     </Transition>
 
+    <Transition name="fade">
+      <PaletteEditorDialog
+        v-if="showPaletteEditor"
+        :colors="paletteColors"
+        :can-undo="undoStack.length > 0"
+        :can-redo="redoStack.length > 0"
+        @change-color="changePaletteColor"
+        @undo="undoPaletteColor"
+        @redo="redoPaletteColor"
+        @close="showPaletteEditor = false"
+      />
+    </Transition>
+
     <footerSection v-if="isPad" />
   </main>
 </template>
@@ -109,6 +131,7 @@ import footerSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import SettingToggle from '@/components/SettingToggle.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
+import PaletteEditorDialog from '@/components/PaletteEditorDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -128,6 +151,13 @@ const showSettings = ref(false)
 const showPreview = ref(false)
 const previewImage = ref('')
 const previewButton = ref<HTMLButtonElement | null>(null)
+const showPaletteEditor = ref(false)
+const paletteIndexMap = ref<Uint8Array | null>(null)
+const paletteColors = ref<string[]>([])
+const editPaletteId = ref<string | null>(null)
+const undoStack = ref<string[][]>([])
+const redoStack = ref<string[][]>([])
+const maxPaletteHistory = 50
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -142,6 +172,7 @@ const conversionRetryDelayMs = 750
 let reprocessTimer: ReturnType<typeof setTimeout> | undefined
 let latestRequestId = 0
 const hasArtwork = computed(() => sourceFile.value !== null)
+const canEditPalette = computed(() => hasArtwork.value && selectedPalette.value !== 'original' && paletteIndexMap.value !== null)
 const status = computed(() =>
   isProcessing.value
     ? { type: 'processing', label: 'status-process' }
@@ -171,6 +202,69 @@ const openPreview = () => {
   if (!target || isProcessing.value) return
   previewImage.value = target.toDataURL('image/png')
   showPreview.value = true
+}
+
+const rgbToHex = (rgb: number[]) => `#${rgb.slice(0, 3).map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0')).join('')}`
+
+const applyPaletteColors = () => {
+  const target = canvas.value
+  const indices = paletteIndexMap.value
+  if (!target || !indices || indices.length !== target.width * target.height) return
+  const context = target.getContext('2d')
+  if (!context) return
+  const image = context.getImageData(0, 0, target.width, target.height)
+  for (let pixel = 0; pixel < indices.length; pixel++) {
+    const paletteIndex = indices[pixel]!
+    const color = paletteColors.value[paletteIndex]
+    if (paletteIndex === 255 || !color) continue
+    const offset = pixel * 4
+    image.data[offset] = Number.parseInt(color.slice(1, 3), 16)
+    image.data[offset + 1] = Number.parseInt(color.slice(3, 5), 16)
+    image.data[offset + 2] = Number.parseInt(color.slice(5, 7), 16)
+  }
+  context.putImageData(image, 0, 0)
+}
+
+const changePaletteColor = (index: number, color: string) => {
+  if (!paletteColors.value[index] || paletteColors.value[index] === color) return
+  undoStack.value.push([...paletteColors.value])
+  if (undoStack.value.length > maxPaletteHistory) undoStack.value.shift()
+  redoStack.value = []
+  paletteColors.value[index] = color
+  applyPaletteColors()
+}
+
+const undoPaletteColor = () => {
+  const previous = undoStack.value.pop()
+  if (!previous) return
+  redoStack.value.push([...paletteColors.value])
+  paletteColors.value = previous
+  applyPaletteColors()
+}
+
+const redoPaletteColor = () => {
+  const next = redoStack.value.pop()
+  if (!next) return
+  undoStack.value.push([...paletteColors.value])
+  paletteColors.value = next
+  applyPaletteColors()
+}
+
+const onPaletteHistoryKeydown = (event: KeyboardEvent) => {
+  if (!showPaletteEditor.value || !(event.ctrlKey || event.metaKey)) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
+  const key = event.key.toLowerCase()
+  if (key === 'z' && event.shiftKey) {
+    event.preventDefault()
+    redoPaletteColor()
+  } else if (key === 'z') {
+    event.preventDefault()
+    undoPaletteColor()
+  } else if (key === 'y') {
+    event.preventDefault()
+    redoPaletteColor()
+  }
 }
 
 const closePreview = () => {
@@ -275,6 +369,8 @@ const processFile = async(file: File) => {
   //   return
   // }
   clearTimeout(reprocessTimer)
+  const preservePalette = sourceFile.value === file && editPaletteId.value === selectedPalette.value
+  const previousPaletteColors = preservePalette ? [...paletteColors.value] : []
   sourceFile.value = file
   const requestId = ++latestRequestId
   errorMessage.value = ''
@@ -313,6 +409,16 @@ const processFile = async(file: File) => {
     if (!result?.data?.data || !result.data.width || !result.data.height)
       throw new Error('Invalid conversion response')
 
+    const responsePalette = Array.isArray(result.data.palette)
+      ? result.data.palette as number[][]
+      : []
+    const encodedIndexMap = result.data.paletteIndexMap
+    let nextPaletteIndexMap: Uint8Array | null = null
+    if (typeof encodedIndexMap === 'string' && responsePalette.length > 0) {
+      const decoded = Uint8Array.from(atob(encodedIndexMap), (character) => character.charCodeAt(0))
+      if (decoded.length === result.data.width * result.data.height) nextPaletteIndexMap = decoded
+    }
+
     const { width, height } = result.data
     const isLandscape = width >= height;
 
@@ -330,12 +436,29 @@ const processFile = async(file: File) => {
     if (requestId !== latestRequestId) return
     await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
 
+    if (requestId !== latestRequestId) return
+    paletteIndexMap.value = nextPaletteIndexMap
+    const nextPalette = responsePalette.map(rgbToHex)
+    editPaletteId.value = nextPaletteIndexMap ? selectedPalette.value : null
+    paletteColors.value = nextPaletteIndexMap && previousPaletteColors.length === nextPalette.length
+      ? previousPaletteColors
+      : nextPalette
+    undoStack.value = []
+    redoStack.value = []
+    showPaletteEditor.value = false
+    if (nextPaletteIndexMap && previousPaletteColors.length === nextPalette.length) applyPaletteColors()
+
     console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
     if (requestId !== latestRequestId) return
     console.log(error)
     sourceFile.value = null
+    paletteIndexMap.value = null
+    paletteColors.value = []
+    editPaletteId.value = null
+    undoStack.value = []
+    redoStack.value = []
     errorMessage.value = t('error-failed')
     // console.error('Pixelization failed:', error)
   } finally {
@@ -404,6 +527,7 @@ const onResize = () => {
 onMounted(() => {
   onResize()
   addEventListener('resize', onResize)
+  addEventListener('keydown', onPaletteHistoryKeydown)
 
   const locale = localStorage.getItem('locale')
 
@@ -415,6 +539,8 @@ onMounted(() => {
 onUnmounted(() => {
   clearTimeout(reprocessTimer)
   latestRequestId++
+  removeEventListener('resize', onResize)
+  removeEventListener('keydown', onPaletteHistoryKeydown)
 })
 </script>
 
