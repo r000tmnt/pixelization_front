@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
@@ -100,6 +100,7 @@ import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts'
 import { useI18n } from 'vue-i18n'
+import { getRecentProject, saveRecentProject } from '@/storage/recentProject'
 
 const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
@@ -141,8 +142,39 @@ const {
   selectedColors,
   ditherStrength,
   erodeStrength,
-  contrastStrength
+  contrastStrength,
+  rememberLastProject
 } = storeToRefs(settings)
+
+const savedSettings = () => ({
+  selectedPalette: selectedPalette.value,
+  selectedSize: selectedSize.value,
+  selectedStyle: selectedStyle.value,
+  selectedColors: [...selectedColors.value],
+  ditherStrength: ditherStrength.value,
+  erodeStrength: erodeStrength.value,
+  contrastStrength: contrastStrength.value,
+})
+
+const persistProject = async (original: File, convertedDataUrl: string, width: number, height: number) => {
+  if (!rememberLastProject.value) return
+  try {
+    const converted = await fetch(convertedDataUrl).then((response) => response.blob())
+    await saveRecentProject({
+      original,
+      originalName: original.name,
+      originalType: original.type,
+      converted,
+      width,
+      height,
+      settings: savedSettings(),
+      savedAt: Date.now(),
+    })
+  } catch (error) {
+    // Storage is optional; a quota or browser policy failure must not fail conversion.
+    console.warn('Could not save the recent project locally:', error)
+  }
+}
 
 const openFilePicker = () => {
   fileInput.value?.click()
@@ -234,7 +266,7 @@ const isRetryableConversionError = (error: unknown) => {
     || ['ERR_NETWORK', 'ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED'].includes(requestError.code ?? '')
 }
 
-const processFile = async(file: File) => {
+const processFile = async(file: File, preserveOnError = false) => {
   // if (!file.type.startsWith('image/')) {
   //   errorMessage.value = 'Choose an image file to begin.'
   //   return
@@ -294,13 +326,15 @@ const processFile = async(file: File) => {
 
     if (requestId !== latestRequestId) return
     await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
+    if (requestId !== latestRequestId) return
+    await persistProject(file, result.data.data, width, height)
 
     console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
     if (requestId !== latestRequestId) return
     console.log(error)
-    sourceFile.value = null
+    if (!preserveOnError) sourceFile.value = null
     errorMessage.value = t('error-failed')
     // console.error('Pixelization failed:', error)
   } finally {
@@ -366,7 +400,11 @@ const onResize = () => {
   setIsPad(window.innerWidth <= 899)
 }
 
-onMounted(() => {
+watch(rememberLastProject, (enabled) => {
+  if (enabled && sourceFile.value && !isProcessing.value) reprocessArtwork()
+})
+
+onMounted(async () => {
   onResize()
   addEventListener('resize', onResize)
 
@@ -374,6 +412,35 @@ onMounted(() => {
 
   if(locale){
     setLocale(locale)
+  }
+
+  if (rememberLastProject.value) {
+    try {
+      const project = await getRecentProject()
+      if (!rememberLastProject.value || sourceFile.value || latestRequestId !== 0) return
+      if (project && project.original instanceof Blob && project.converted instanceof Blob) {
+        const restoredFile = new File([project.original], project.originalName, {
+          type: project.originalType || project.original.type || 'image/png',
+        })
+        selectedPalette.value = project.settings.selectedPalette
+        selectedSize.value = project.settings.selectedSize
+        selectedStyle.value = project.settings.selectedStyle
+        settings.setCustomColors(project.settings.selectedColors)
+        ditherStrength.value = project.settings.ditherStrength
+        erodeStrength.value = project.settings.erodeStrength
+        contrastStrength.value = project.settings.contrastStrength
+        sourceFile.value = restoredFile
+        const convertedUrl = URL.createObjectURL(project.converted)
+        try {
+          await drawArtwork(convertedUrl, project.width, project.height)
+        } finally {
+          URL.revokeObjectURL(convertedUrl)
+        }
+        void processFile(restoredFile, true)
+      }
+    } catch (error) {
+      console.warn('Could not restore the recent project from local storage:', error)
+    }
   }
 })
 
