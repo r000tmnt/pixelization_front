@@ -703,6 +703,7 @@ button:focus-visible {
 .actions{
   display: flex;
   justify-content: center;
+  gap: 12px;
 }
 
 .status-row {
