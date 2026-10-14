@@ -39,12 +39,6 @@ export const usePixelizationStore = defineStore('pixelization', {
         id: 'monochrome',
         name: 'Monochrome',
         colors: ['#000000', '#222222', '#444444', '#666666'],
-      },
-      {
-        id: 'custom',
-        name: 'Custom',
-        //TODO:  Use the first 4 of chosen color
-        colors: ['#f2796100', '#b3b32400', '#f2796100', '#b3b32400'],
       }
     ] as Palette[],
     acceptFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
@@ -70,6 +64,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     erodeStrength: 1,
     contrastStrength: 2,
     sizeLimitMB: 5,
+    rememberLastProject: localStorage.getItem('rememberLastProject') === 'true',
   }),
   // getters: {
   //   activePalette: (state) =>
@@ -91,23 +86,15 @@ export const usePixelizationStore = defineStore('pixelization', {
     setContrastStrength(strength: number) {
       this.contrastStrength = strength
     },
+    setRememberLastProject(enabled: boolean) {
+      this.rememberLastProject = enabled
+      localStorage.setItem('rememberLastProject', String(enabled))
+    },
     setDitherStyle(style: string) {
       this.selectedStyle = style
     },
     setCustomColors(colors: string[]) {
       this.selectedColors = colors
-
-      // console.log(colors)
-
-      const customIndex = this.palettes.length - 1
-      const customPalette = this.palettes[customIndex]
-
-      if (!customPalette) return
-
-      for (let i = 0; i < 4; i++) {
-        const color = colors[i] ?? customPalette.colors[i] ?? '#00000000'
-        customPalette.colors[i] = color
-      }
     }
   },
 })

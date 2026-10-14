@@ -7,7 +7,6 @@
       @export-image="downloadArtwork"
       @settings-changed="reprocessArtwork"
       @settings-changed-debounced="scheduleReprocessArtwork"
-      @open-custom-palette="toggleCustomPalette"
       @show-settings="(v) => showSettings = v"
     />
     <section class="artwork-zone" aria-labelledby="stage-title">
@@ -54,9 +53,15 @@
         <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
       </div>
       <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
-        <!-- <button class="button primary" type="button" @click="emit('choose-image')">
-          {{ hasArtwork ? 'Replace image' : 'Choose an image' }}
-        </button> -->
+        <button
+          ref="previewButton"
+          class="button secondary"
+          type="button"
+          :disabled="!hasArtwork || isProcessing"
+          @click="openPreview"
+        >
+          {{ $t("preview-edit") }}
+        </button>
         <button
           class="button secondary"
           type="button"
@@ -69,17 +74,25 @@
     </section>
 
     <Transition name="fade">
-      <customPalette
-        v-if="openCustomPalette"
-        @settings-changed="reprocessArtwork"
-        @close="openCustomPalette = false"
+      <SettingsDialog
+        v-if="showSettings"
+        @close="showSettings = false"
       />
     </Transition>
 
     <Transition name="fade">
-      <SettingsDialog
-        v-if="showSettings"
-        @close="showSettings = false"
+      <ImagePreviewDialog
+        v-if="showPreview && previewImage"
+        :src="previewImage"
+        :colors="paletteColors"
+        :selected-colors="selectedColors"
+        :can-undo="undoStack.length > 0"
+        :can-redo="redoStack.length > 0"
+        @change-color="changePaletteColor"
+        @undo="undoPaletteColor"
+        @redo="redoPaletteColor"
+        @apply-custom="applyCustomPalette"
+        @close="closePreview"
       />
     </Transition>
 
@@ -88,18 +101,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
-import customPalette from '@/components/customPalette.vue'
 import footerSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import SettingToggle from '@/components/SettingToggle.vue'
+import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
 import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts'
 import { useI18n } from 'vue-i18n'
+import { getRecentProject, saveRecentProject } from '@/storage/recentProject'
 
 const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
@@ -110,6 +124,17 @@ const { setIsPad, setLocale } = defaultStore
 const { t } = useI18n()
 
 const showSettings = ref(false)
+const showPreview = ref(false)
+const previewImage = ref('')
+const previewButton = ref<HTMLButtonElement | null>(null)
+const paletteIndexMap = ref<Uint8Array | null>(null)
+const paletteBaseColors = ref<string[]>([])
+const paletteColors = ref<string[]>([])
+const paletteEdits = ref<Record<string, string>>({})
+const editPaletteId = ref<string | null>(null)
+const undoStack = ref<string[][]>([])
+const redoStack = ref<string[][]>([])
+const maxPaletteHistory = 50
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -118,7 +143,6 @@ const isProcessing = ref(false)
 const isDragging = ref(false)
 const errorMessage = ref('')
 // const imageDetails = ref('')
-const openCustomPalette = ref(false)
 const reprocessDebounceMs = 250
 const conversionRetryDelayMs = 750
 let reprocessTimer: ReturnType<typeof setTimeout> | undefined
@@ -141,12 +165,164 @@ const {
   selectedColors,
   ditherStrength,
   erodeStrength,
-  contrastStrength
+  contrastStrength,
+  rememberLastProject
 } = storeToRefs(settings)
+
+const savedSettings = () => ({
+  selectedPalette: selectedPalette.value,
+  selectedSize: selectedSize.value,
+  selectedStyle: selectedStyle.value,
+  selectedColors: [...selectedColors.value],
+  ditherStrength: ditherStrength.value,
+  erodeStrength: erodeStrength.value,
+  contrastStrength: contrastStrength.value,
+})
+
+const persistProject = async (original: File, convertedDataUrl: string, width: number, height: number) => {
+  if (!rememberLastProject.value) return
+  try {
+    const converted = await fetch(convertedDataUrl).then((response) => response.blob())
+    await saveRecentProject({
+      original,
+      originalName: original.name,
+      originalType: original.type,
+      converted,
+      width,
+      height,
+      settings: savedSettings(),
+      paletteEdits: { ...paletteEdits.value },
+      savedAt: Date.now(),
+    })
+  } catch (error) {
+    // Storage is optional; a quota or browser policy failure must not fail conversion.
+    console.warn('Could not save the recent project locally:', error)
+  }
+}
 
 const openFilePicker = () => {
   fileInput.value?.click()
 }
+
+const openPreview = () => {
+  const target = canvas.value
+  if (!target || isProcessing.value) return
+  previewImage.value = target.toDataURL('image/png')
+  showPreview.value = true
+}
+
+const rgbToHex = (rgb: number[]) => `#${rgb.slice(0, 3).map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0')).join('')}`
+
+const paletteEditKey = (baseColor: string) => `${editPaletteId.value ?? selectedPalette.value}:${baseColor.toLowerCase()}`
+
+const syncPaletteEdits = (colors: string[]) => {
+  for (let index = 0; index < paletteBaseColors.value.length; index++) {
+    const baseColor = paletteBaseColors.value[index]
+    const color = colors[index]
+    if (!baseColor || !color) continue
+    const key = paletteEditKey(baseColor)
+    if (color.toLowerCase() === baseColor.toLowerCase()) delete paletteEdits.value[key]
+    else paletteEdits.value[key] = color
+  }
+}
+
+const applyPaletteColors = () => {
+  const target = canvas.value
+  const indices = paletteIndexMap.value
+  if (!target || !indices || indices.length !== target.width * target.height) return
+  const context = target.getContext('2d')
+  if (!context) return
+  const image = context.getImageData(0, 0, target.width, target.height)
+  for (let pixel = 0; pixel < indices.length; pixel++) {
+    const paletteIndex = indices[pixel]!
+    const color = paletteColors.value[paletteIndex]
+    if (paletteIndex === 255 || !color) continue
+    const offset = pixel * 4
+    image.data[offset] = Number.parseInt(color.slice(1, 3), 16)
+    image.data[offset + 1] = Number.parseInt(color.slice(3, 5), 16)
+    image.data[offset + 2] = Number.parseInt(color.slice(5, 7), 16)
+  }
+  context.putImageData(image, 0, 0)
+  if (showPreview.value) previewImage.value = target.toDataURL('image/png')
+}
+
+const persistEditedArtwork = () => {
+  const target = canvas.value
+  const original = sourceFile.value
+  if (!target || !original || !rememberLastProject.value) return
+  void persistProject(original, target.toDataURL('image/png'), target.width, target.height)
+}
+
+const changePaletteColor = (index: number, color: string) => {
+  if (!paletteColors.value[index] || paletteColors.value[index] === color) return
+  undoStack.value.push([...paletteColors.value])
+  if (undoStack.value.length > maxPaletteHistory) undoStack.value.shift()
+  redoStack.value = []
+  const nextColors = [...paletteColors.value]
+  nextColors[index] = color
+  paletteColors.value = nextColors
+  const baseColor = paletteBaseColors.value[index]
+  if (baseColor) {
+    const key = paletteEditKey(baseColor)
+    if (color.toLowerCase() === baseColor.toLowerCase()) delete paletteEdits.value[key]
+    else paletteEdits.value[key] = color
+  }
+  applyPaletteColors()
+  persistEditedArtwork()
+}
+
+const undoPaletteColor = () => {
+  const previous = undoStack.value.pop()
+  if (!previous) return
+  redoStack.value.push([...paletteColors.value])
+  paletteColors.value = previous
+  syncPaletteEdits(previous)
+  applyPaletteColors()
+  persistEditedArtwork()
+}
+
+const redoPaletteColor = () => {
+  const next = redoStack.value.pop()
+  if (!next) return
+  undoStack.value.push([...paletteColors.value])
+  paletteColors.value = next
+  syncPaletteEdits(next)
+  applyPaletteColors()
+  persistEditedArtwork()
+}
+
+const applyCustomPalette = (colors: string[]) => {
+  settings.setCustomColors(colors)
+  settings.setPalette('custom')
+  reprocessArtwork()
+}
+
+const onPaletteHistoryKeydown = (event: KeyboardEvent) => {
+  if (!showPreview.value || !(event.ctrlKey || event.metaKey)) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
+  const key = event.key.toLowerCase()
+  if (key === 'z' && event.shiftKey) {
+    event.preventDefault()
+    redoPaletteColor()
+  } else if (key === 'z') {
+    event.preventDefault()
+    undoPaletteColor()
+  } else if (key === 'y') {
+    event.preventDefault()
+    redoPaletteColor()
+  }
+}
+
+const closePreview = () => {
+  showPreview.value = false
+}
+
+watch(showPreview, async (isOpen) => {
+  if (isOpen) return
+  await nextTick()
+  previewButton.value?.focus()
+})
 
 const checkFileType = (file: File | undefined) => {
   const type = file?.type
@@ -203,17 +379,13 @@ const reprocessArtwork = () => {
   clearTimeout(reprocessTimer)
   if (sourceFile.value) {
 
-    if (openCustomPalette.value) {
-      return
-    }
-
     processFile(sourceFile.value)
   }
 }
 
 const scheduleReprocessArtwork = () => {
   clearTimeout(reprocessTimer)
-  if (!sourceFile.value || openCustomPalette.value) return
+  if (!sourceFile.value) return
   // Invalidate any conversion already running with the previous slider value.
   latestRequestId++
   reprocessTimer = setTimeout(() => {
@@ -234,7 +406,7 @@ const isRetryableConversionError = (error: unknown) => {
     || ['ERR_NETWORK', 'ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED'].includes(requestError.code ?? '')
 }
 
-const processFile = async(file: File) => {
+const processFile = async(file: File, preserveOnError = false) => {
   // if (!file.type.startsWith('image/')) {
   //   errorMessage.value = 'Choose an image file to begin.'
   //   return
@@ -252,9 +424,6 @@ const processFile = async(file: File) => {
   form.append('contrastStrength', String(contrastStrength.value))
   form.append('ditherStyle', String(selectedStyle.value))
   form.append('file', file)
-
-  console.log(selectedPalette.value)
-  console.log(selectedColors.value)
 
   if (selectedPalette.value === 'custom' && selectedColors.value.length > 0) {
     const customColors = selectedColors.value.join(';')
@@ -278,6 +447,16 @@ const processFile = async(file: File) => {
     if (!result?.data?.data || !result.data.width || !result.data.height)
       throw new Error('Invalid conversion response')
 
+    const responsePalette = Array.isArray(result.data.palette)
+      ? result.data.palette as number[][]
+      : []
+    const encodedIndexMap = result.data.paletteIndexMap
+    let nextPaletteIndexMap: Uint8Array | null = null
+    if (typeof encodedIndexMap === 'string' && responsePalette.length > 0) {
+      const decoded = Uint8Array.from(atob(encodedIndexMap), (character) => character.charCodeAt(0))
+      if (decoded.length === result.data.width * result.data.height) nextPaletteIndexMap = decoded
+    }
+
     const { width, height } = result.data
     const isLandscape = width >= height;
 
@@ -294,13 +473,36 @@ const processFile = async(file: File) => {
 
     if (requestId !== latestRequestId) return
     await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
+    await persistProject(file, result.data.data, width, height)
 
-    console.log(`width: ${width}, height: ${height}`)
+    paletteIndexMap.value = nextPaletteIndexMap
+    const nextPalette = responsePalette.map(rgbToHex)
+    const nextEditPaletteId = nextPaletteIndexMap ? selectedPalette.value : null
+    paletteBaseColors.value = nextPalette
+    const nextPaletteColors = nextPalette.map((baseColor) =>
+      nextEditPaletteId
+        ? paletteEdits.value[`${nextEditPaletteId}:${baseColor.toLowerCase()}`] ?? baseColor
+        : baseColor,
+    )
+    paletteColors.value = nextPaletteColors
+    undoStack.value = []
+    redoStack.value = []
+    const hasPaletteEdits = nextPalette.some((baseColor, index) => nextPaletteColors[index] !== baseColor)
+    if (nextPaletteIndexMap && hasPaletteEdits) applyPaletteColors()
+    if (showPreview.value && canvas.value) previewImage.value = canvas.value.toDataURL('image/png')
+
+    // console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
   } catch (error) {
     if (requestId !== latestRequestId) return
     console.log(error)
-    sourceFile.value = null
+    if (!preserveOnError) sourceFile.value = null
+    paletteIndexMap.value = null
+    paletteBaseColors.value = []
+    paletteColors.value = []
+    editPaletteId.value = null
+    undoStack.value = []
+    redoStack.value = []
     errorMessage.value = t('error-failed')
     // console.error('Pixelization failed:', error)
   } finally {
@@ -358,28 +560,61 @@ const downloadArtwork = async() => {
   }
 }
 
-const toggleCustomPalette = () => {
-  openCustomPalette.value = true
-}
-
 const onResize = () => {
   setIsPad(window.innerWidth <= 899)
 }
 
-onMounted(() => {
+watch(rememberLastProject, (enabled) => {
+  if (enabled && sourceFile.value && !isProcessing.value) reprocessArtwork()
+})
+
+onMounted(async () => {
   onResize()
   addEventListener('resize', onResize)
+  addEventListener('keydown', onPaletteHistoryKeydown)
 
   const locale = localStorage.getItem('locale')
 
   if(locale){
     setLocale(locale)
   }
+
+  if (rememberLastProject.value) {
+    try {
+      const project = await getRecentProject()
+      if (!rememberLastProject.value || sourceFile.value || latestRequestId !== 0) return
+      if (project && project.original instanceof Blob && project.converted instanceof Blob) {
+        const restoredFile = new File([project.original], project.originalName, {
+          type: project.originalType || project.original.type || 'image/png',
+        })
+        selectedPalette.value = project.settings.selectedPalette
+        selectedSize.value = project.settings.selectedSize
+        selectedStyle.value = project.settings.selectedStyle
+        settings.setCustomColors(project.settings.selectedColors)
+        ditherStrength.value = project.settings.ditherStrength
+        erodeStrength.value = project.settings.erodeStrength
+        contrastStrength.value = project.settings.contrastStrength
+        paletteEdits.value = project.paletteEdits ?? {}
+        sourceFile.value = restoredFile
+        const convertedUrl = URL.createObjectURL(project.converted)
+        try {
+          await drawArtwork(convertedUrl, project.width, project.height)
+        } finally {
+          URL.revokeObjectURL(convertedUrl)
+        }
+        void processFile(restoredFile, true)
+      }
+    } catch (error) {
+      console.warn('Could not restore the recent project from local storage:', error)
+    }
+  }
 })
 
 onUnmounted(() => {
   clearTimeout(reprocessTimer)
   latestRequestId++
+  removeEventListener('resize', onResize)
+  removeEventListener('keydown', onPaletteHistoryKeydown)
 })
 </script>
 
@@ -553,6 +788,7 @@ button:focus-visible {
 .actions{
   display: flex;
   justify-content: center;
+  gap: 12px;
 }
 
 .status-row {
