@@ -59,5 +59,11 @@
     "font-label": "介面字型",
     "font-pixel": "點陣",
     "font-readable": "清晰",
+    "storage-remember": "記住上次的圖片",
+    "storage-description": "將最近使用的原始圖片與轉換結果儲存在此裝置，下次自動恢復。關閉後不再儲存；已儲存的資料可在下方刪除。",
+    "storage-delete": "刪除已儲存資料",
+    "storage-deleting": "刪除中…",
+    "storage-deleted": "已刪除儲存的圖片資料。",
+    "storage-error": "無法存取瀏覽器儲存空間。",
     "404": "你迷路了嗎？{sec} 秒後返回首頁。"
 }

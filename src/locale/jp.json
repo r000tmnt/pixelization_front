@@ -59,5 +59,11 @@
   "font-label": "表示フォント",
   "font-pixel": "ピクセル",
   "font-readable": "クリア",
+  "storage-remember": "前回の画像を保存",
+  "storage-description": "元画像と変換後の画像をこの端末に保存し、次回自動的に再開します。オフにすると今後は保存されません。既存データは下から削除できます。",
+  "storage-delete": "保存データを削除",
+  "storage-deleting": "削除中…",
+  "storage-deleted": "保存した画像データを削除しました。",
+  "storage-error": "ブラウザーのストレージにアクセスできません。",
   "404": "迷子ですか？{sec} 秒後にホームページに戻ります。"
 }
