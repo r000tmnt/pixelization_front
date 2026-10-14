@@ -11,7 +11,7 @@
       <header class="preview-header">
         <div class="preview-title-group">
           <h2 id="preview-title">{{ $t('preview-edit') }}</h2>
-          <button v-if="colors.length" class="palette-toggle" type="button" @click="showPalettePanel = !showPalettePanel">
+          <button class="palette-toggle" type="button" @click="showPalettePanel = !showPalettePanel">
             {{ showPalettePanel ? $t('hide-palette') : $t('show-palette') }}
           </button>
         </div>
@@ -24,11 +24,15 @@
           <button class="close-button" type="button" :aria-label="$t('close')" @click="emit('close')">×</button>
         </div>
       </header>
-      <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': colors.length > 0 }">
-        <aside v-if="colors.length" class="palette-drawer" :aria-label="$t('edit-colors')">
-          <h3>{{ $t('edit-colors') }}</h3>
-          <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
-          <div class="palette-list">
+      <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
+        <aside class="palette-drawer" :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
+          <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
+            <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
+            <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
+          </div>
+          <template v-if="paletteMode === 'image'">
+            <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
+            <div class="palette-list custom-color-list">
             <label v-for="(color, index) in colors" :key="index" class="palette-color">
               <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
               <code>{{ color.toUpperCase() }}</code>
@@ -39,11 +43,30 @@
                 @change="(event) => emit('change-color', index, (event.target as HTMLInputElement).value)"
               />
             </label>
-          </div>
-          <footer class="palette-actions">
-            <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
-            <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button>
-          </footer>
+            </div>
+            <footer class="palette-actions">
+              <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
+              <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button>
+            </footer>
+          </template>
+          <template v-else>
+            <p class="palette-description">{{ $t('custom-palette-hint') }}</p>
+            <label class="color-count">
+              <span>{{ $t('label-custom-color') }}</span>
+              <input type="range" min="2" max="16" step="1" :value="customDraft.length" @input="resizeCustomPalette" />
+              <output>{{ customDraft.length }}</output>
+            </label>
+            <div class="palette-list custom-color-list">
+              <label v-for="(color, index) in customDraft" :key="index" class="palette-color">
+                <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
+                <code>{{ color.toUpperCase() }}</code>
+                <input type="color" :value="color" :aria-label="$t('palette-color') + ' ' + (index + 1)" @input="(event) => updateCustomColor(event, index)" />
+              </label>
+            </div>
+            <footer class="palette-actions">
+              <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('apply-custom-palette') }}</button>
+            </footer>
+          </template>
         </aside>
         <div
         ref="viewport"
@@ -72,9 +95,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   src: string
   colors: string[]
+  selectedColors: string[]
   canUndo: boolean
   canRedo: boolean
 }>()
@@ -83,6 +107,7 @@ const emit = defineEmits<{
   'change-color': [index: number, color: string]
   undo: []
   redo: []
+  'apply-custom': [colors: string[]]
 }>()
 
 const MIN_ZOOM = 0.25
@@ -95,6 +120,8 @@ const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
+const paletteMode = ref<'image' | 'custom'>(props.colors.length ? 'image' : 'custom')
+const customDraft = ref<string[]>(props.selectedColors.length ? [...props.selectedColors] : ['#000000', '#ffffff'])
 let fitDimensions = ''
 let panPointerId: number | null = null
 let lastPointerX = 0
@@ -103,6 +130,15 @@ let lastPointerY = 0
 const imageStyle = computed(() => ({
   transform: `translate(calc(-50% + ${offsetX.value}px), calc(-50% + ${offsetY.value}px)) scale(${zoom.value})`,
 }))
+
+const resizeCustomPalette = (event: Event) => {
+  const length = Number((event.target as HTMLInputElement).value)
+  customDraft.value = Array.from({ length }, (_, index) => customDraft.value[index] ?? '#ffffff')
+}
+
+const updateCustomColor = (event: Event, index: number) => {
+  customDraft.value[index] = (event.target as HTMLInputElement).value
+}
 
 const clampZoom = (value: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value))
 
@@ -257,7 +293,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 }
 .palette-drawer h3 { margin: 0; font-size: 1rem; }
 .palette-description { margin: 8px 0 14px; color: var(--px-text-muted); font-size: 0.8rem; line-height: 1.45; }
-.palette-list { display: grid; gap: 7px; min-height: 0; overflow: auto; }
+.palette-modes { display: flex; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--px-grid); }
+.palette-modes button { flex: 1; min-height: 34px; border: 1px solid var(--px-grid); border-radius: var(--radius-sm); background: var(--px-surface-raised); color: var(--px-text-muted); font: inherit; font-size: 0.78rem; cursor: pointer; }
+.palette-modes button.active { border-color: var(--px-violet); color: var(--px-text); }
+.color-count { display: grid; grid-template-columns: auto minmax(0, 1fr) 24px; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; }
+.color-count output { color: var(--px-text-muted); text-align: right; }
+.color-count input { min-width: 0; accent-color: var(--px-azure); }
+.palette-list { display: grid; flex: 1; gap: 7px; min-height: 0; overflow: auto; }
+.custom-color-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
 .palette-color {
   position: relative;
   display: grid;
@@ -271,6 +314,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   color: var(--px-text);
   font-size: 0.8rem;
   cursor: pointer;
+}
+.palette-color:focus-within {
+  border-color: var(--px-azure);
+  box-shadow: 2px var(--px-azure);
 }
 .palette-swatch { width: 20px; height: 20px; border: 1px solid var(--px-grid); border-radius: 3px; }
 .palette-color input {
@@ -297,6 +344,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   cursor: pointer;
 }
 .palette-actions button:disabled { opacity: 0.45; cursor: default; }
+.palette-actions .apply-custom { width: 100%; border-color: var(--px-azure); background: var(--px-azure); color: var(--px-ink); }
 .preview-viewport {
   position: relative;
   min-width: 0;
