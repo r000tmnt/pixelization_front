@@ -16,6 +16,7 @@ export type RecentProject = {
   width: number
   height: number
   settings: SavedDitherSettings
+  paletteEdits?: Record<string, string>
   savedAt: number
 }
 

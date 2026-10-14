@@ -191,6 +191,7 @@ const persistProject = async (original: File, convertedDataUrl: string, width: n
       width,
       height,
       settings: savedSettings(),
+      paletteEdits: { ...paletteEdits.value },
       savedAt: Date.now(),
     })
   } catch (error) {
@@ -245,6 +246,13 @@ const applyPaletteColors = () => {
   if (showPreview.value) previewImage.value = target.toDataURL('image/png')
 }
 
+const persistEditedArtwork = () => {
+  const target = canvas.value
+  const original = sourceFile.value
+  if (!target || !original || !rememberLastProject.value) return
+  void persistProject(original, target.toDataURL('image/png'), target.width, target.height)
+}
+
 const changePaletteColor = (index: number, color: string) => {
   if (!paletteColors.value[index] || paletteColors.value[index] === color) return
   undoStack.value.push([...paletteColors.value])
@@ -260,6 +268,7 @@ const changePaletteColor = (index: number, color: string) => {
     else paletteEdits.value[key] = color
   }
   applyPaletteColors()
+  persistEditedArtwork()
 }
 
 const undoPaletteColor = () => {
@@ -269,6 +278,7 @@ const undoPaletteColor = () => {
   paletteColors.value = previous
   syncPaletteEdits(previous)
   applyPaletteColors()
+  persistEditedArtwork()
 }
 
 const redoPaletteColor = () => {
@@ -278,6 +288,7 @@ const redoPaletteColor = () => {
   paletteColors.value = next
   syncPaletteEdits(next)
   applyPaletteColors()
+  persistEditedArtwork()
 }
 
 const applyCustomPalette = (colors: string[]) => {
@@ -583,6 +594,7 @@ onMounted(async () => {
         ditherStrength.value = project.settings.ditherStrength
         erodeStrength.value = project.settings.erodeStrength
         contrastStrength.value = project.settings.contrastStrength
+        paletteEdits.value = project.paletteEdits ?? {}
         sourceFile.value = restoredFile
         const convertedUrl = URL.createObjectURL(project.converted)
         try {
