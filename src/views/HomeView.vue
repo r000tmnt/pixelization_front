@@ -85,11 +85,13 @@
         v-if="showPreview && previewImage"
         :src="previewImage"
         :colors="paletteColors"
+        :selected-colors="selectedColors"
         :can-undo="undoStack.length > 0"
         :can-redo="redoStack.length > 0"
         @change-color="changePaletteColor"
         @undo="undoPaletteColor"
         @redo="redoPaletteColor"
+        @apply-custom="applyCustomPalette"
         @close="closePreview"
       />
     </Transition>
@@ -244,6 +246,12 @@ const redoPaletteColor = () => {
   paletteColors.value = next
   syncPaletteEdits(next)
   applyPaletteColors()
+}
+
+const applyCustomPalette = (colors: string[]) => {
+  settings.setCustomColors(colors)
+  settings.setPalette('custom')
+  reprocessArtwork()
 }
 
 const onPaletteHistoryKeydown = (event: KeyboardEvent) => {
