@@ -64,7 +64,7 @@
               </label>
             </div>
             <footer class="palette-actions">
-              <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('apply-custom-palette') }}</button>
+              <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
             </footer>
           </template>
         </aside>
@@ -111,7 +111,7 @@ const emit = defineEmits<{
 }>()
 
 const MIN_ZOOM = 0.25
-const MAX_ZOOM = 4
+const MAX_ZOOM = 8
 const ZOOM_STEP = 0.1
 const dialog = ref<HTMLElement | null>(null)
 const viewport = ref<HTMLElement | null>(null)
@@ -171,8 +171,9 @@ const fitImage = async () => {
   const picture = area?.querySelector('img')
   if (!area || !picture?.naturalWidth || !picture.naturalHeight) return
   const rect = area.getBoundingClientRect()
-  // Fit may go below the manual zoom minimum for very large images.
-  zoom.value = Math.min(1, rect.width / picture.naturalWidth, rect.height / picture.naturalHeight)
+  // Fit may go below the manual zoom minimum for large images, and can enlarge
+  // small images up to the manual zoom maximum.
+  zoom.value = Math.min(MAX_ZOOM, rect.width / picture.naturalWidth, rect.height / picture.naturalHeight)
   offsetX.value = 0
   offsetY.value = 0
 }
