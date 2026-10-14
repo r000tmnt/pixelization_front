@@ -88,6 +88,7 @@
         :selected-colors="selectedColors"
         :can-undo="undoStack.length > 0"
         :can-redo="redoStack.length > 0"
+        :is-processing="isProcessing"
         @change-color="changePaletteColor"
         @undo="undoPaletteColor"
         @redo="redoPaletteColor"
@@ -748,27 +749,6 @@ onUnmounted(() => {
 .replace-overlay:focus-visible {
   opacity: 1;
 }
-.processing-overlay {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  overflow: hidden;
-  place-items: center;
-  background: rgb(11 10 19 / 72%);
-  color: var(--px-text);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.scan-line {
-  position: absolute;
-  width: 100%;
-  height: 3px;
-  background: var(--px-azure);
-  box-shadow: 0 0 18px var(--px-azure);
-  animation: scan 0.75s linear infinite;
-}
 .error-message {
   position: absolute;
   right: 16px;
@@ -820,16 +800,7 @@ button:focus-visible {
   background: var(--px-danger);
 }
 
-@keyframes scan {
-  from {
-    transform: translateY(-360px);
-  }
-  to {
-    transform: translateY(720px);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .scan-line,
   .replace-overlay {
     animation: none;
     transition: none;
