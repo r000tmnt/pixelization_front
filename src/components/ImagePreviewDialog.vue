@@ -71,6 +71,7 @@
         <div
         ref="viewport"
         class="preview-viewport"
+        :aria-busy="isProcessing"
         :class="{ 'is-panning': isPanning }"
         @wheel.prevent="handleWheel"
         @pointerdown="startPan"
@@ -85,6 +86,10 @@
           draggable="false"
             @load="onImageLoad"
           />
+          <div v-if="isProcessing" class="processing-overlay" role="status">
+            <span class="scan-line" aria-hidden="true"></span>
+            <span>{{ $t('status-process') }}</span>
+          </div>
         </div>
       </div>
       <p class="preview-hint">{{ $t('preview-hint') }}</p>
@@ -101,6 +106,7 @@ const props = defineProps<{
   selectedColors: string[]
   canUndo: boolean
   canRedo: boolean
+  isProcessing: boolean
 }>()
 const emit = defineEmits<{
   close: []
