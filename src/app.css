@@ -20,18 +20,18 @@
   --shadow-glow: 0 0 24px rgb(157 92 255 / 18%);
 }
 
-@font-face {
+/* @font-face {
   font-family: 'BoutiqueBitmap9x9';
   src: url('fonts/BoutiqueBitmap9x9_1.93.ttf') format('truetype');
   /* 如果有 woff2 格式，建議優先使用：
-  src: url('fonts/BoutiqueBitmap9x9.woff2') format('woff2'); */
+  src: url('fonts/BoutiqueBitmap9x9.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
-}
+} */
 
 @font-face {
   font-family: 'Cubic_11';
-  src: url('fonts/Cubic_11.woff2') format('woff2');
+  src: url('/pixelization_front/fonts/Cubic_11.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
