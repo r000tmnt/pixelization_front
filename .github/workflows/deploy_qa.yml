@@ -37,9 +37,13 @@ jobs:
           node-version: lts/*
           cache: 'npm'
 
+      - name: Get Package Version
+        id: get-package-version
+        uses: stevenbenitez/get-package-version-action@v1        
+
       - name: Add Environment Variables
         env:
-          VITE_APP_VERSION: ${{ $npm_package_version }}
+          VITE_APP_VERSION: ${{ steps.get-package-version.outputs.version }}
           VITE_API: ${{ secrets.VITE_API }}
         run: echo "Environment variables configured."
 
