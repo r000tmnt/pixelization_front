@@ -35,7 +35,11 @@
         </div>
       </header>
       <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
-        <aside id="palette-drawer" class="palette-drawer" :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
+        <aside
+          id="palette-drawer"
+          class="palette-drawer"
+          :style="{ padding: showPalettePanel? '14px' : 0 }"
+          :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
           <button
             class="palette-toggle"
             type="button"
@@ -47,68 +51,71 @@
             <span>{{ $t('tool-handle') }}</span>
             <svg :class="{ open: showPalettePanel }" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6" /></svg>
           </button>
-          <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
-            <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
-            <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
-          </div>
-          <template v-if="paletteMode === 'image'">
-            <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
-            <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
-              <button type="button" :aria-label="$t('magic-wand')" :title="$t('magic-wand')" :aria-pressed="tool === 'wand'" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 10-10 4 4L9 23H5zM14 4V1m6 5h3M4 8 2 6m16-1 2-2m-7 5 2 2" /><path d="M7 17h.01M17 10h.01" /></svg>
-              </button>
-              <button type="button" :aria-label="$t('brush')" :title="$t('brush')" :aria-pressed="tool === 'brush'" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M3 21c4 0 6-2 7-6L21 4l-3-3L7 12c-4 1-6 3-6 7 0 1 1 2 2 2Z" /></svg>
-              </button>
-              <button type="button" :aria-label="$t('eyedropper')" :title="$t('eyedropper')" :aria-pressed="tool === 'eyedropper'" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7 3 3M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16zM4 20H2v2" /></svg>
-              </button>
-              <button type="button" :aria-label="$t('hand')" :title="$t('hand')" :aria-pressed="tool === 'hand'" :class="{ active: tool === 'hand' }" @click="tool = 'hand'">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-4a1.5 1.5 0 0 1 3 0v7c0 5-3 8-8 8h-1c-2 0-3-1-4-2l-4-5a1.5 1.5 0 0 1 2-2z" /></svg>
-              </button>
+          <div class="drawer-content" :style="{ opacity: showPalettePanel ? 1 : 0, height: showPalettePanel ? 'auto' : 0 }" >
+            <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
+              <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
+              <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
             </div>
-            <label class="edit-control">
-              <span>{{ $t('wand-tolerance') }}</span>
-              <input v-model.number="tolerance" type="range" min="0" max="100" step="1" />
-              <output>{{ tolerance }}</output>
-            </label>
-            <label class="edit-control">
-              <span>{{ $t('brush-size') }}</span>
-              <input v-model.number="brushSize" type="range" min="1" max="64" step="1" />
-              <output>{{ brushSize }}px</output>
-            </label>
-            <label class="edit-control paint-color">
-              <!-- <span>{{ $t('paint-color') }}</span> -->
-              <input v-model="paintColor" type="color" :disabled="tool !== 'brush' || !selection" />
-              <code>{{ paintColor.toUpperCase() }}</code>
-            </label>
-            <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
-            <footer class="palette-actions">
-              <button type="button" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">{{ $t('undo') }}</button>
-              <button type="button" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">{{ $t('redo') }}</button>
-              <!-- <button type="button" :disabled="!selection" @click="clearSelection">{{ $t('deselect') }}</button> -->
-            </footer>
-          </template>
-          <template v-else>
-            <p class="palette-description">{{ $t('custom-palette-hint') }}</p>
-            <label class="color-count">
-              <span>{{ $t('label-custom-color') }}</span>
-              <input type="range" min="2" max="16" step="1" :value="customDraft.length" @input="resizeCustomPalette" />
-              <output>{{ customDraft.length }}</output>
-            </label>
-            <div class="palette-list custom-color-list">
-              <label v-for="(color, index) in customDraft" :key="index" class="palette-color">
-                <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
-                <code>{{ color.toUpperCase() }}</code>
-                <input type="color" :value="color" :aria-label="$t('palette-color') + ' ' + (index + 1)" @input="(event) => updateCustomColor(event, index)" />
+            <template v-if="paletteMode === 'image'">
+              <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
+              <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
+                <button type="button" :aria-label="$t('magic-wand')" :title="$t('magic-wand')" :aria-pressed="tool === 'wand'" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 10-10 4 4L9 23H5zM14 4V1m6 5h3M4 8 2 6m16-1 2-2m-7 5 2 2" /><path d="M7 17h.01M17 10h.01" /></svg>
+                </button>
+                <button type="button" :aria-label="$t('brush')" :title="$t('brush')" :aria-pressed="tool === 'brush'" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M3 21c4 0 6-2 7-6L21 4l-3-3L7 12c-4 1-6 3-6 7 0 1 1 2 2 2Z" /></svg>
+                </button>
+                <button type="button" :aria-label="$t('eyedropper')" :title="$t('eyedropper')" :aria-pressed="tool === 'eyedropper'" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7 3 3M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16zM4 20H2v2" /></svg>
+                </button>
+                <button type="button" :aria-label="$t('hand')" :title="$t('hand')" :aria-pressed="tool === 'hand'" :class="{ active: tool === 'hand' }" @click="tool = 'hand'">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-4a1.5 1.5 0 0 1 3 0v7c0 5-3 8-8 8h-1c-2 0-3-1-4-2l-4-5a1.5 1.5 0 0 1 2-2z" /></svg>
+                </button>
+              </div>
+              <label class="edit-control">
+                <span>{{ $t('wand-tolerance') }}</span>
+                <input v-model.number="tolerance" type="range" min="0" max="100" step="1" />
+                <output>{{ tolerance }}</output>
               </label>
-            </div>
-            <footer class="palette-actions">
-              <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
-              <!-- <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
-              <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button> -->
-            </footer>
-          </template>
+              <label class="edit-control">
+                <span>{{ $t('brush-size') }}</span>
+                <input v-model.number="brushSize" type="range" min="1" max="64" step="1" />
+                <output>{{ brushSize }}px</output>
+              </label>
+              <label class="edit-control paint-color">
+                <!-- <span>{{ $t('paint-color') }}</span> -->
+                <input v-model="paintColor" type="color" />
+                <code>{{ paintColor.toUpperCase() }}</code>
+              </label>
+              <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
+              <footer class="palette-actions">
+                <button type="button" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">{{ $t('undo') }}</button>
+                <button type="button" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">{{ $t('redo') }}</button>
+                <!-- <button type="button" :disabled="!selection" @click="clearSelection">{{ $t('deselect') }}</button> -->
+              </footer>
+            </template>
+            <template v-else>
+              <p class="palette-description">{{ $t('custom-palette-hint') }}</p>
+              <label class="color-count">
+                <span>{{ $t('label-custom-color') }}</span>
+                <input type="range" min="2" max="16" step="1" :value="customDraft.length" @input="resizeCustomPalette" />
+                <output>{{ customDraft.length }}</output>
+              </label>
+              <div class="palette-list custom-color-list">
+                <label v-for="(color, index) in customDraft" :key="index" class="palette-color">
+                  <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
+                  <code>{{ color.toUpperCase() }}</code>
+                  <input type="color" :value="color" :aria-label="$t('palette-color') + ' ' + (index + 1)" @input="(event) => updateCustomColor(event, index)" />
+                </label>
+              </div>
+              <footer class="palette-actions">
+                <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
+                <!-- <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
+                <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button> -->
+              </footer>
+            </template>
+          </div>
+
         </aside>
         <div
         ref="viewport"
@@ -411,7 +418,7 @@ const finishEditing = () => {
   emit('close')
 }
 
-const clearSelection = () => { rememberEdit(); selection.value = null; stopSelectionAnts(); drawSelection() }
+// const clearSelection = () => { rememberEdit(); selection.value = null; stopSelectionAnts(); drawSelection() }
 
 const resizeCustomPalette = (event: Event) => {
   const length = Number((event.target as HTMLInputElement).value)
@@ -595,7 +602,6 @@ button:disabled { opacity: 0.45; cursor: default; }
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: 14px;
   border: 1px solid var(--px-grid);
   border-radius: var(--radius-sm);
   background: var(--px-surface);
@@ -722,7 +728,7 @@ button:focus-visible,
     opacity: 1;
     pointer-events: auto;
     transform: translateX(-50%);
-    width: 100%;
+    width: 100.5%;
   }
   .palette-toggle svg {
     width: 18px;
@@ -749,7 +755,7 @@ button:focus-visible,
     opacity: 1;
     pointer-events: none;
     transform: translateY(calc(100% - 1px));
-    transition: transform 240ms ease;
+    transition: transform 240ms ease, padding 0.2s ease;
   }
   .preview-workspace.palette-open .palette-drawer {
     pointer-events: auto;
