@@ -60,16 +60,16 @@
               <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
               <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
                 <button type="button" :aria-label="$t('magic-wand')" :title="$t('magic-wand')" :aria-pressed="tool === 'wand'" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 10-10 4 4L9 23H5zM14 4V1m6 5h3M4 8 2 6m16-1 2-2m-7 5 2 2" /><path d="M7 17h.01M17 10h.01" /></svg>
+                  <MagicWandIcon />
                 </button>
                 <button type="button" :aria-label="$t('brush')" :title="$t('brush')" :aria-pressed="tool === 'brush'" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M3 21c4 0 6-2 7-6L21 4l-3-3L7 12c-4 1-6 3-6 7 0 1 1 2 2 2Z" /></svg>
+                  <BrushIcon />
                 </button>
                 <button type="button" :aria-label="$t('eyedropper')" :title="$t('eyedropper')" :aria-pressed="tool === 'eyedropper'" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7 3 3M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16zM4 20H2v2" /></svg>
+                  <EyeDropperIcon />
                 </button>
                 <button type="button" :aria-label="$t('hand')" :title="$t('hand')" :aria-pressed="tool === 'hand'" :class="{ active: tool === 'hand' }" @click="tool = 'hand'">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-4a1.5 1.5 0 0 1 3 0v7c0 5-3 8-8 8h-1c-2 0-3-1-4-2l-4-5a1.5 1.5 0 0 1 2-2z" /></svg>
+                  <HandIcon />
                 </button>
               </div>
               <label class="edit-control">
@@ -145,6 +145,12 @@
 import { storeToRefs } from 'pinia'
 import { useDefaultStore } from '@/stores/default'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+
+// Icons
+import MagicWandIcon from '@/icons/MagicWand.vue'
+import EyeDropperIcon from '@/icons/EyeDropper.vue'
+import BrushIcon from '@/icons/BrushIcon.vue'
+import HandIcon from '@/icons/HandIcon.vue'
 
 const props = defineProps<{
   src: string
