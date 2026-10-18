@@ -4,6 +4,7 @@ export const useDefaultStore = defineStore('default', {
   state: () => ({
     scrollTop: 0,
     isPad: false,
+    isMobile: false,
     lang: localStorage.getItem('locale') || 'us',
     readableFont: localStorage.getItem('readableFont') === 'true'
   }),
@@ -18,6 +19,9 @@ export const useDefaultStore = defineStore('default', {
     },
     setIsPad (isPad: boolean) {
       this.isPad = isPad
+    },
+    setIsMobile (isMobile: boolean) {
+      this.isMobile = isMobile
     },
     setLocale (id: string) {
       this.lang = id
