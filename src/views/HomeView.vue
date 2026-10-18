@@ -119,8 +119,8 @@ import { getRecentProject, saveRecentProject } from '@/storage/recentProject'
 const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
 
-const { isPad } = storeToRefs(defaultStore)
-const { setIsPad, setLocale } = defaultStore
+const { isPad, } = storeToRefs(defaultStore)
+const { setIsPad, setIsMobile, setLocale } = defaultStore
 
 const { t } = useI18n()
 
@@ -563,6 +563,7 @@ const downloadArtwork = async() => {
 
 const onResize = () => {
   setIsPad(window.innerWidth <= 899)
+  setIsMobile(window.innerWidth <= 620)
 }
 
 watch(rememberLastProject, (enabled) => {
