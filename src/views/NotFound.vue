@@ -40,16 +40,6 @@ onMounted(() => {
     font.value = 'Cubic_11'
   }
 
-  // if(readableFont.value) {
-  //   font.value = 'var(--font-ui)'
-  // } else
-  // if(storedLocale !== 'us') {
-  //   font.value = 'BoutiqueBitmap9x9'
-  // } else {
-  //   font.value = 'Pixelify Sans'
-  // }
-
-
   counter.value = setInterval(() => {
     if(sec.value === 0){
       clearInterval(counter.value)
