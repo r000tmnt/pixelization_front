@@ -11,9 +11,7 @@
       <header class="preview-header">
         <div class="preview-title-group">
           <h2 id="preview-title">{{ $t('preview-edit') }}</h2>
-          <button class="palette-toggle" type="button" @click="showPalettePanel = !showPalettePanel">
-            {{ showPalettePanel ? $t('hide-palette') : $t('show-palette') }}
-          </button>
+
           <button
             v-if="isMobile"
             class="close-button"
@@ -37,7 +35,18 @@
         </div>
       </header>
       <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
-        <aside class="palette-drawer" :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
+        <aside id="palette-drawer" class="palette-drawer" :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
+          <button
+            class="palette-toggle"
+            type="button"
+            :aria-label="$t('tool-handle')"
+            :aria-expanded="showPalettePanel"
+            aria-controls="palette-drawer"
+            @click="showPalettePanel = !showPalettePanel"
+          >
+            <span>{{ $t('tool-handle') }}</span>
+            <svg :class="{ open: showPalettePanel }" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6" /></svg>
+          </button>
           <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
             <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
             <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
@@ -45,13 +54,22 @@
           <template v-if="paletteMode === 'image'">
             <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
             <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
-              <button type="button" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">{{ $t('magic-wand') }}</button>
-              <button type="button" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">{{ $t('brush') }}</button>
-              <button type="button" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">{{ $t('eyedropper') }}</button>
+              <button type="button" :aria-label="$t('magic-wand')" :title="$t('magic-wand')" :aria-pressed="tool === 'wand'" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 10-10 4 4L9 23H5zM14 4V1m6 5h3M4 8 2 6m16-1 2-2m-7 5 2 2" /><path d="M7 17h.01M17 10h.01" /></svg>
+              </button>
+              <button type="button" :aria-label="$t('brush')" :title="$t('brush')" :aria-pressed="tool === 'brush'" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M3 21c4 0 6-2 7-6L21 4l-3-3L7 12c-4 1-6 3-6 7 0 1 1 2 2 2Z" /></svg>
+              </button>
+              <button type="button" :aria-label="$t('eyedropper')" :title="$t('eyedropper')" :aria-pressed="tool === 'eyedropper'" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7 3 3M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16zM4 20H2v2" /></svg>
+              </button>
+              <button type="button" :aria-label="$t('hand')" :title="$t('hand')" :aria-pressed="tool === 'hand'" :class="{ active: tool === 'hand' }" @click="tool = 'hand'">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v7-4a1.5 1.5 0 0 1 3 0v7c0 5-3 8-8 8h-1c-2 0-3-1-4-2l-4-5a1.5 1.5 0 0 1 2-2z" /></svg>
+              </button>
             </div>
             <label class="edit-control">
               <span>{{ $t('wand-tolerance') }}</span>
-              <input v-model.number="tolerance" type="range" min="0" max="100" step="1" :disabled="tool !== 'wand'" />
+              <input v-model.number="tolerance" type="range" min="0" max="100" step="1" />
               <output>{{ tolerance }}</output>
             </label>
             <label class="edit-control">
@@ -60,15 +78,15 @@
               <output>{{ brushSize }}px</output>
             </label>
             <label class="edit-control paint-color">
-              <span>{{ $t('paint-color') }}</span>
+              <!-- <span>{{ $t('paint-color') }}</span> -->
               <input v-model="paintColor" type="color" :disabled="tool !== 'brush' || !selection" />
               <code>{{ paintColor.toUpperCase() }}</code>
             </label>
-            <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p>
+            <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
             <footer class="palette-actions">
               <button type="button" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">{{ $t('undo') }}</button>
               <button type="button" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">{{ $t('redo') }}</button>
-              <button type="button" :disabled="!selection" @click="clearSelection">{{ $t('deselect') }}</button>
+              <!-- <button type="button" :disabled="!selection" @click="clearSelection">{{ $t('deselect') }}</button> -->
             </footer>
           </template>
           <template v-else>
@@ -87,8 +105,8 @@
             </div>
             <footer class="palette-actions">
               <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
-              <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
-              <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button>
+              <!-- <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
+              <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button> -->
             </footer>
           </template>
         </aside>
@@ -96,7 +114,7 @@
         ref="viewport"
         class="preview-viewport"
         :aria-busy="isProcessing"
-        :class="{ 'is-panning': isPanning }"
+        :class="{ 'is-panning': isPanning, 'is-hand-tool': tool === 'hand' }"
         @wheel.prevent="handleWheel"
         @pointerdown="onViewportPointerDown"
         @pointermove="movePan"
@@ -111,7 +129,7 @@
           </div>
         </div>
       </div>
-      <p class="preview-hint">{{ $t('preview-hint') }}</p>
+      <p v-if="!isMobile && !isPad" class="preview-hint">{{ $t('preview-hint') }}</p>
     </section>
   </div>
 </template>
@@ -139,7 +157,7 @@ const emit = defineEmits<{
 }>()
 
 const defaultStore = useDefaultStore()
-const { isMobile } = storeToRefs(defaultStore)
+const { isMobile, isPad } = storeToRefs(defaultStore)
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
@@ -154,7 +172,7 @@ const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
 const paletteMode = ref<'image' | 'custom'>(props.colors.length ? 'image' : 'custom')
-const tool = ref<'wand' | 'brush' | 'eyedropper'>('wand')
+const tool = ref<'wand' | 'brush' | 'eyedropper' | 'hand'>('hand')
 const tolerance = ref(24)
 const brushSize = ref(12)
 const paintColor = ref('#000000')
@@ -590,8 +608,10 @@ button:disabled { opacity: 0.45; cursor: default; }
 .color-count { display: grid; grid-template-columns: auto minmax(0, 1fr) 24px; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; }
 .color-count output { color: var(--px-text-muted); text-align: right; }
 .color-count input { min-width: 0; accent-color: var(--px-azure); }
-.edit-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.edit-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
 .edit-tools button { min-height: 38px; font-size: 0.82rem; }
+.edit-tools button { display: grid; place-items: center; padding: 0; }
+.edit-tools svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .edit-tools button.active { border-color: var(--px-violet); background: var(--px-violet); color: var(--px-ink); font-weight: 700; }
 .edit-tools button:disabled { opacity: 0.45; cursor: default; }
 .edit-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 7px 10px; margin-top: 10px; color: var(--px-text-muted); font-size: 0.78rem; }
@@ -660,6 +680,8 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .preview-viewport.is-panning { cursor: grabbing; }
 .preview-viewport:has(.edit-canvas) { cursor: crosshair; }
+.preview-viewport.is-hand-tool { cursor: grab; }
+.preview-viewport.is-hand-tool.is-panning { cursor: grabbing; }
 .preview-viewport .edit-canvas,
 .preview-viewport .selection-canvas {
   position: absolute;
@@ -680,17 +702,58 @@ button:focus-visible,
 .palette-color input:focus-visible { outline: 2px solid var(--px-azure); outline-offset: 2px; }
 @media (max-width: 899px) {
   .preview-workspace { grid-template-columns: minmax(0, 1fr); }
-  .palette-toggle { display: inline-flex; align-items: center; }
-  .palette-drawer { display: none; }
-  .preview-workspace.palette-open .palette-drawer {
+  .palette-toggle {
+    position: absolute;
+    z-index: 5;
+    top: -30px;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    /* min-width: 142px;
+    min-height: 46px; */
+    padding: 0 20px;
+    border-radius: 12px 12px 0 0;
+    /* border-color: var(--px-azure);
+    background: var(--px-azure); */
+    color: var(--px-text-muted);
+    box-shadow: 0 4px 18px rgb(0 0 0 / 45%);
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%);
+    width: 100%;
+  }
+  .palette-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    transition: transform 200ms ease;
+  }
+  .palette-toggle svg.open {
+    transform: rotate(180deg);
+  }
+  .palette-drawer {
     position: absolute;
     z-index: 2;
     right: 0;
     bottom: 0;
     left: 0;
     display: flex;
-    max-height: 58%;
+    /* max-height: min(66%, 65vh); */
     box-shadow: 0 -12px 30px rgb(0 0 0 / 45%);
+    opacity: 1;
+    pointer-events: none;
+    transform: translateY(calc(100% - 1px));
+    transition: transform 240ms ease;
+  }
+  .preview-workspace.palette-open .palette-drawer {
+    pointer-events: auto;
+    transform: translateY(0);
   }
 }
 @media (max-width: 620px) {
