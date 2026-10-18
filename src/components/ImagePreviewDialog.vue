@@ -46,7 +46,7 @@
             <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
             <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
               <button type="button" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">{{ $t('magic-wand') }}</button>
-              <button type="button" :disabled="!selection" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">{{ $t('brush') }}</button>
+              <button type="button" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">{{ $t('brush') }}</button>
             </div>
             <label class="edit-control">
               <span>{{ $t('wand-tolerance') }}</span>
@@ -55,7 +55,7 @@
             </label>
             <label class="edit-control">
               <span>{{ $t('brush-size') }}</span>
-              <input v-model.number="brushSize" type="range" min="1" max="64" step="1" :disabled="tool !== 'brush' || !selection" />
+              <input v-model.number="brushSize" type="range" min="1" max="64" step="1" />
               <output>{{ brushSize }}px</output>
             </label>
             <label class="edit-control paint-color">
@@ -164,6 +164,8 @@ const undoSelections = ref<(Uint8Array | null)[]>([])
 const redoSelections = ref<(Uint8Array | null)[]>([])
 let imageLoadedSrc = ''
 let brushPainting = false
+let antOffset = 0
+let antTimer: ReturnType<typeof setInterval> | undefined
 const customDraft = ref<string[]>(props.selectedColors.length ? [...props.selectedColors] : ['#000000', '#ffffff'])
 let panPointerId: number | null = null
 let lastPointerX = 0
@@ -193,6 +195,7 @@ const loadEditorImage = async () => {
     selectionCanvas.value.height = target.height
   }
   selection.value = null
+  stopSelectionAnts()
   undoImages.value = []
   redoImages.value = []
   undoSelections.value = []
@@ -210,13 +213,15 @@ const drawSelection = () => {
   ctx.clearRect(0, 0, target.width, target.height)
   if (!mask) return
   const overlay = ctx.createImageData(target.width, target.height)
-  for (let i = 0; i < mask.length; i++) {
-    if (!mask[i]) continue
-    const offset = i * 4
-    overlay.data[offset] = 50
-    overlay.data[offset + 1] = 30
-    overlay.data[offset + 2] = 180
-    overlay.data[offset + 3] = 75
+  if (tool.value === 'wand') {
+    for (let i = 0; i < mask.length; i++) {
+      if (!mask[i]) continue
+      const offset = i * 4
+      overlay.data[offset] = 50
+      overlay.data[offset + 1] = 30
+      overlay.data[offset + 2] = 180
+      overlay.data[offset + 3] = 75
+    }
   }
   // Mark the selection edge in the same pixel buffer to keep large regions responsive.
   const w = target.width
@@ -226,10 +231,11 @@ const drawSelection = () => {
     if (!mask[i]) continue
     if (x === 0 || y === 0 || x === w - 1 || y === h - 1 || !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) {
       const offset = i * 4
-      overlay.data[offset] = 55
-      overlay.data[offset + 1] = 40
-      overlay.data[offset + 2] = 180
-      overlay.data[offset + 3] = 220
+      const lightDash = Math.floor((x + y + antOffset) / 4) % 2 === 0
+      overlay.data[offset] = lightDash ? 255 : 20
+      overlay.data[offset + 1] = lightDash ? 255 : 20
+      overlay.data[offset + 2] = lightDash ? 255 : 20
+      overlay.data[offset + 3] = 255
     }
   }
   ctx.putImageData(overlay, 0, 0)
@@ -250,6 +256,8 @@ const restoreEdit = (image: ImageData, mask: Uint8Array | null) => {
   if (!ctx) return
   ctx.putImageData(image, 0, 0)
   selection.value = mask ? new Uint8Array(mask) : null
+  if (selection.value && !antTimer) startSelectionAnts()
+  else if (!selection.value) stopSelectionAnts()
   drawSelection()
 }
 
@@ -314,23 +322,42 @@ const selectRegion = (x: number, y: number) => {
   }
   rememberEdit()
   selection.value = mask
+  startSelectionAnts()
   drawSelection()
+}
+
+const startSelectionAnts = () => {
+  stopSelectionAnts()
+  antOffset = 0
+  antTimer = setInterval(() => {
+    antOffset = (antOffset + 1) % 8
+    drawSelection()
+  }, 120)
+}
+
+const stopSelectionAnts = () => {
+  if (antTimer) clearInterval(antTimer)
+  antTimer = undefined
 }
 
 const paintAt = (x: number, y: number) => {
   const canvas = editCanvas.value
   const ctx = canvas?.getContext('2d')
   const mask = selection.value
-  if (!canvas || !ctx || !mask) return
+  if (!canvas || !ctx) return
   const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  // Image points are pixel indices; paint around pixel centers. At 1 px this
+  // makes the clicked source pixel the exact target instead of missing it.
+  const centerX = x + 0.5
+  const centerY = y + 0.5
   const radius = brushSize.value / 2
   const minX = Math.max(0, Math.floor(x - radius)), maxX = Math.min(canvas.width - 1, Math.ceil(x + radius))
   const minY = Math.max(0, Math.floor(y - radius)), maxY = Math.min(canvas.height - 1, Math.ceil(y + radius))
   const r = parseInt(paintColor.value.slice(1, 3), 16), g = parseInt(paintColor.value.slice(3, 5), 16), b = parseInt(paintColor.value.slice(5, 7), 16)
   for (let py = minY; py <= maxY; py++) for (let px = minX; px <= maxX; px++) {
-    const dx = px + 0.5 - x, dy = py + 0.5 - y
+    const dx = px + 0.5 - centerX, dy = py + 0.5 - centerY
     const index = py * canvas.width + px
-    if (dx * dx + dy * dy > radius * radius || !mask[index]) continue
+    if (dx * dx + dy * dy > radius * radius || mask && !mask[index]) continue
     const offset = index * 4
     image.data[offset] = r; image.data[offset + 1] = g; image.data[offset + 2] = b; image.data[offset + 3] = 255
   }
@@ -341,7 +368,7 @@ const onViewportPointerDown = (event: PointerEvent) => {
   const point = imagePoint(event)
   if (point && paletteMode.value === 'image') {
     if (tool.value === 'wand') { selectRegion(point.x, point.y); return }
-    if (tool.value === 'brush' && selection.value) {
+    if (tool.value === 'brush') {
       rememberEdit()
       brushPainting = true
       paintAt(point.x, point.y)
@@ -357,7 +384,7 @@ const finishEditing = () => {
   emit('close')
 }
 
-const clearSelection = () => { rememberEdit(); selection.value = null; drawSelection() }
+const clearSelection = () => { rememberEdit(); selection.value = null; stopSelectionAnts(); drawSelection() }
 
 const resizeCustomPalette = (event: Event) => {
   const length = Number((event.target as HTMLInputElement).value)
@@ -466,10 +493,14 @@ onMounted(() => {
 })
 
 watch(() => props.src, () => { imageLoadedSrc = ''; void loadEditorImage() })
+watch(tool, drawSelection)
 watch(() => props.selectedColors, (colors) => {
   customDraft.value = colors.length ? [...colors] : ['#000000', '#ffffff']
 })
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown, true))
+onUnmounted(() => {
+  stopSelectionAnts()
+  window.removeEventListener('keydown', onKeyDown, true)
+})
 </script>
 
 <style scoped>
