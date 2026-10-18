@@ -14,6 +14,13 @@
           <button class="palette-toggle" type="button" @click="showPalettePanel = !showPalettePanel">
             {{ showPalettePanel ? $t('hide-palette') : $t('show-palette') }}
           </button>
+          <button
+            v-if="isMobile"
+            class="close-button"
+            style="margin-left: auto;"
+            type="button"
+            :aria-label="$t('close')"
+            @click="emit('close')">×</button>
         </div>
         <div class="preview-controls">
           <button type="button" :aria-label="$t('zoom-out')" :disabled="zoom <= MIN_ZOOM" @click="zoomAtCenter(zoom - ZOOM_STEP)">−</button>
@@ -21,7 +28,12 @@
           <button type="button" :aria-label="$t('zoom-in')" :disabled="zoom >= MAX_ZOOM" @click="zoomAtCenter(zoom + ZOOM_STEP)">+</button>
           <button type="button" @click="fitImage">{{ $t('fit') }}</button>
           <button type="button" @click="zoomAtCenter(1)">100%</button>
-          <button class="close-button" type="button" :aria-label="$t('close')" @click="emit('close')">×</button>
+          <button
+            v-if="!isMobile"
+            class="close-button"
+            type="button"
+            :aria-label="$t('close')"
+            @click="emit('close')">×</button>
         </div>
       </header>
       <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
@@ -98,6 +110,8 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
+import { useDefaultStore } from '@/stores/default'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 const props = defineProps<{
@@ -115,6 +129,9 @@ const emit = defineEmits<{
   redo: []
   'apply-custom': [colors: string[]]
 }>()
+
+const defaultStore = useDefaultStore()
+const { isMobile } = storeToRefs(defaultStore)
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
@@ -259,7 +276,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 }
 .preview-title-group { display: flex; align-items: center; gap: 12px; }
 .preview-header h2 { margin: 0; font-size: 1.1rem; }
-.preview-controls button {
+button {
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
@@ -270,7 +287,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   font: inherit;
   cursor: pointer;
 }
-.preview-controls button:disabled { opacity: 0.45; cursor: default; }
+button:disabled { opacity: 0.45; cursor: default; }
 .preview-controls output {
   min-width: 48px;
   color: var(--px-text-muted);
@@ -397,6 +414,7 @@ button:focus-visible,
 }
 @media (max-width: 620px) {
   .preview-header { align-items: flex-start; flex-direction: column; }
+  .preview-title-group { width: 100%;  }
   .preview-controls { width: 100%; gap: 5px; }
   .preview-controls button { min-width: 32px; padding: 0 7px; }
   .preview-controls output { min-width: 40px; }
