@@ -47,6 +47,7 @@
             <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
               <button type="button" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">{{ $t('magic-wand') }}</button>
               <button type="button" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">{{ $t('brush') }}</button>
+              <button type="button" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">{{ $t('eyedropper') }}</button>
             </div>
             <label class="edit-control">
               <span>{{ $t('wand-tolerance') }}</span>
@@ -153,7 +154,7 @@ const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
 const paletteMode = ref<'image' | 'custom'>(props.colors.length ? 'image' : 'custom')
-const tool = ref<'wand' | 'brush'>('wand')
+const tool = ref<'wand' | 'brush' | 'eyedropper'>('wand')
 const tolerance = ref(24)
 const brushSize = ref(12)
 const paintColor = ref('#000000')
@@ -368,6 +369,14 @@ const onViewportPointerDown = (event: PointerEvent) => {
   const point = imagePoint(event)
   if (point && paletteMode.value === 'image') {
     if (tool.value === 'wand') { selectRegion(point.x, point.y); return }
+    if (tool.value === 'eyedropper') {
+      const context = editCanvas.value?.getContext('2d')
+      if (!context) return
+      const pixel = context.getImageData(point.x, point.y, 1, 1).data
+      paintColor.value = `#${[pixel[0], pixel[1], pixel[2]].map((channel) => channel!.toString(16).padStart(2, '0')).join('')}`
+      tool.value = 'brush'
+      return
+    }
     if (tool.value === 'brush') {
       rememberEdit()
       brushPainting = true
@@ -581,11 +590,11 @@ button:disabled { opacity: 0.45; cursor: default; }
 .color-count { display: grid; grid-template-columns: auto minmax(0, 1fr) 24px; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; }
 .color-count output { color: var(--px-text-muted); text-align: right; }
 .color-count input { min-width: 0; accent-color: var(--px-azure); }
-.edit-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.edit-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .edit-tools button { min-height: 38px; font-size: 0.82rem; }
 .edit-tools button.active { border-color: var(--px-violet); background: var(--px-violet); color: var(--px-ink); font-weight: 700; }
 .edit-tools button:disabled { opacity: 0.45; cursor: default; }
-.edit-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 7px 10px; color: var(--px-text-muted); font-size: 0.78rem; }
+.edit-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 7px 10px; margin-top: 10px; color: var(--px-text-muted); font-size: 0.78rem; }
 .edit-control input[type="range"] { grid-column: 1; width: 100%; accent-color: var(--px-azure); }
 .edit-control output { grid-column: 2; grid-row: 2; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
 .paint-color { grid-template-columns: auto 30px minmax(0, 1fr); }
