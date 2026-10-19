@@ -526,16 +526,6 @@ const processFile = async(file: File, preserveOnError = false) => {
     if (!result?.data?.data || !result.data.width || !result.data.height)
       throw new Error('Invalid conversion response')
 
-    const responsePalette = Array.isArray(result.data.palette)
-      ? result.data.palette as number[][]
-      : []
-    const encodedIndexMap = result.data.paletteIndexMap
-    let nextPaletteIndexMap: Uint8Array | null = null
-    if (typeof encodedIndexMap === 'string' && responsePalette.length > 0) {
-      const decoded = Uint8Array.from(atob(encodedIndexMap), (character) => character.charCodeAt(0))
-      if (decoded.length === result.data.width * result.data.height) nextPaletteIndexMap = decoded
-    }
-
     const { width, height } = result.data
     const isLandscape = width >= height;
 
@@ -554,22 +544,7 @@ const processFile = async(file: File, preserveOnError = false) => {
     await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
     await persistProject(file, result.data.data, width, height)
 
-    paletteIndexMap.value = nextPaletteIndexMap
-    const nextPalette = responsePalette.map(rgbToHex)
-    const nextEditPaletteId = nextPaletteIndexMap ? selectedPalette.value : null
-    editPaletteId.value = nextEditPaletteId
-    paletteBaseColors.value = nextPalette
-    const nextPaletteColors = nextPalette.map((baseColor) =>
-      nextEditPaletteId
-        ? paletteEdits.value[`${nextEditPaletteId}:${baseColor.toLowerCase()}`] ?? baseColor
-        : baseColor,
-    )
-    paletteColors.value = nextPaletteColors
-    undoStack.value = []
-    redoStack.value = []
-    const hasPaletteEdits = nextPalette.some((baseColor, index) => nextPaletteColors[index] !== baseColor)
-    if (nextPaletteIndexMap && hasPaletteEdits) applyPaletteColors()
-    if (showPreview.value && canvas.value) previewImage.value = canvas.value.toDataURL('image/png')
+    processImagePalette(result.data)
 
     // console.log(`width: ${width}, height: ${height}`)
     // imageDetails.value = `${result.data.width} × ${result.data.height} px · ${settings.selectedSize}× blocks`
@@ -588,6 +563,34 @@ const processFile = async(file: File, preserveOnError = false) => {
   } finally {
     if (requestId === latestRequestId) isProcessing.value = false
   }
+}
+
+const processImagePalette = (data: { palette: number[][]; paletteIndexMap: string, width: number, height: number }) => {
+    const responsePalette = Array.isArray(data.palette)
+      ? data.palette as number[][]
+      : []
+    const encodedIndexMap = data.paletteIndexMap
+    let nextPaletteIndexMap: Uint8Array | null = null
+    if (typeof encodedIndexMap === 'string' && responsePalette.length > 0) {
+      const decoded = Uint8Array.from(atob(encodedIndexMap), (character) => character.charCodeAt(0))
+      if (decoded.length === data.width * data.height) nextPaletteIndexMap = decoded
+    }
+
+    paletteIndexMap.value = nextPaletteIndexMap
+    const nextPalette = responsePalette.map(rgbToHex)
+    const nextEditPaletteId = nextPaletteIndexMap ? selectedPalette.value : null
+    editPaletteId.value = nextEditPaletteId
+    paletteBaseColors.value = nextPalette
+    const nextPaletteColors = nextPalette.map((baseColor) =>
+      nextEditPaletteId
+        ? paletteEdits.value[`${nextEditPaletteId}:${baseColor.toLowerCase()}`] ?? baseColor
+        : baseColor,
+    )
+    paletteColors.value = nextPaletteColors
+
+    const hasPaletteEdits = nextPalette.some((baseColor, index) => nextPaletteColors[index] !== baseColor)
+    if (nextPaletteIndexMap && hasPaletteEdits) applyPaletteColors()
+    if (showPreview.value && canvas.value) previewImage.value = canvas.value.toDataURL('image/png')
 }
 
 const drawArtwork = async(dataUrl: string, width: number, height: number, requestId?: number) => {
@@ -666,13 +669,13 @@ onMounted(async () => {
       if (!rememberLastProject.value || sourceFile.value || latestRequestId !== 0) return
 
       if(project){
-        selectedPalette.value = project.settings.selectedPalette
-        selectedSize.value = project.settings.selectedSize
-        selectedStyle.value = project.settings.selectedStyle
+        settings.setPalette(project.settings.selectedPalette)
+        settings.setPixelSize(project.settings.selectedSize)
+        settings.setDitherStyle(project.settings.selectedStyle)
         settings.setCustomColors(project.settings.selectedColors)
-        ditherStrength.value = project.settings.ditherStrength
-        erodeStrength.value = project.settings.erodeStrength
-        contrastStrength.value = project.settings.contrastStrength
+        settings.setDitherStrength(project.settings.ditherStrength)
+        settings.setErodeStrength(project.settings.erodeStrength)
+        settings.setContrastStrength(project.settings.contrastStrength)
         paletteEdits.value = project.paletteEdits ?? {}
       }
 
