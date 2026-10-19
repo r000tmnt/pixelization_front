@@ -198,7 +198,12 @@ let imageLoadedSrc = ''
 let brushPainting = false
 let antOffset = 0
 let antTimer: ReturnType<typeof setInterval> | undefined
-const customDraft = ref<string[]>(props.selectedColors.length ? [...props.selectedColors] : ['#000000', '#ffffff'])
+const customDraft = ref<string[]>(props.selectedColors.length ? [...props.selectedColors] : [
+  "#1f3124", "#e43f3b", "#173e76", "#ffffff",
+  "#38bdf8", "#e2678a", "#72f1b8", "#f97e72",
+  "#cc7b6b", "#ffb000", "#ff8b39", "#6494aa",
+  "#ac4142", "#423f4f", "#d28445", "#59a4f9"
+])
 let panPointerId: number | null = null
 let lastPointerX = 0
 let lastPointerY = 0
