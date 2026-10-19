@@ -12,7 +12,7 @@
   const defaultStore = useDefaultStore()
 
   const { setScrollTop } = defaultStore
-  const { lang, readableFont } = storeToRefs(defaultStore)
+  const { lang, readableFont, theme } = storeToRefs(defaultStore)
 
   const { locale, t } = useI18n()
   locale.value = lang.value
@@ -26,6 +26,10 @@
   //   : lang.value !== 'us' ? 'BoutiqueBitmap9x9' : 'Pixelify Sans')
 
   const pageTitle = computed(() => t('title-html'))
+
+  watch(theme, (value) => {
+    document.documentElement.dataset.theme = value
+  }, { immediate: true })
 
   useSeoMeta({
     title: pageTitle,

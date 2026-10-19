@@ -7,6 +7,23 @@
       </header>
       <div class="settings-fields">
         <FontToggle />
+        <fieldset class="theme-select">
+          <legend>{{ $t('theme-label') }}</legend>
+          <button
+            v-for="option in themes"
+            :key="option.id"
+            class="theme-option"
+            :class="[`theme-${option.id}`, { selected: theme === option.id }]"
+            type="button"
+            :aria-pressed="theme === option.id"
+            @click="setTheme(option.id)"
+          >
+            <span class="theme-preview" aria-hidden="true">
+              <i></i><i></i><i></i>
+            </span>
+            <span>{{ $t(option.label) }}</span>
+          </button>
+        </fieldset>
         <section class="storage-settings">
           <label class="storage-toggle">
             <span>
@@ -57,7 +74,14 @@ import { onMounted, ref } from 'vue'
 const emit = defineEmits<{ close: [] }>()
 const store = useDefaultStore()
 const { lang } = storeToRefs(store)
-const { setLocale, setDisplayLang } = store
+const { theme } = storeToRefs(store)
+const { setLocale, setDisplayLang, setTheme } = store
+const themes = [
+  { id: 'violet', label: 'theme-violet' },
+  { id: 'mint', label: 'theme-mint' },
+  { id: 'arcade', label: 'theme-arcade' },
+  { id: 'light', label: 'theme-light' },
+]
 const pixelizationStore = usePixelizationStore()
 const { rememberLastProject } = storeToRefs(pixelizationStore)
 const hasSavedProject = ref(false)
@@ -120,6 +144,17 @@ const deleteSavedProject = async () => {
   cursor: pointer;
 }
 .settings-fields { display: grid; gap: 18px; }
+.theme-select { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; border: 0; color: var(--px-text-muted); font-size: 0.85rem; }
+.theme-select legend { grid-column: 1 / -1; margin-bottom: 10px; }
+.theme-option { display: flex; align-items: center; gap: 9px; min-height: 44px; padding: 6px 9px; border: 1px solid var(--px-grid); border-radius: var(--radius-sm); background: var(--px-surface-raised); color: var(--px-text); font: inherit; text-align: left; cursor: pointer; }
+.theme-option.selected { border-color: var(--px-violet-bright); box-shadow: inset 0 0 0 1px var(--px-violet-bright); }
+.theme-preview { display: flex; flex: 0 0 36px; gap: 3px; height: 22px; padding: 4px; border: 1px solid var(--preview-grid); border-radius: 5px; background: var(--preview-bg); }
+.theme-preview i { flex: 1; border-radius: 2px; background: var(--preview-accent); }
+.theme-preview i:nth-child(2) { background: var(--preview-secondary); }
+.theme-violet { --preview-bg: #151326; --preview-grid: #373252; --preview-accent: #9d5cff; --preview-secondary: #38bdf8; }
+.theme-mint { --preview-bg: #182528; --preview-grid: #3d5b60; --preview-accent: #72f1b8; --preview-secondary: #6494aa; }
+.theme-arcade { --preview-bg: #281820; --preview-grid: #603b42; --preview-accent: #ff8b39; --preview-secondary: #e43f3b; }
+.theme-light { --preview-bg: #fffdf8; --preview-grid: #c9c1b4; --preview-accent: #3d6f83; --preview-secondary: #72f1b8; }
 .storage-settings { display: grid; gap: 10px; }
 .storage-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--px-text); cursor: pointer; }
 .storage-toggle span { display: grid; gap: 5px; }

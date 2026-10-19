@@ -86,13 +86,14 @@
         :src="previewImage"
         :colors="paletteColors"
         :selected-colors="selectedColors"
-        :can-undo="undoStack.length > 0"
-        :can-redo="redoStack.length > 0"
+        :can-undo="undoStack.length > 0 || customUndoStack.length > 0"
+        :can-redo="redoStack.length > 0 || customRedoStack.length > 0"
         :is-processing="isProcessing"
         @change-color="changePaletteColor"
         @undo="undoPaletteColor"
         @redo="redoPaletteColor"
         @apply-custom="applyCustomPalette"
+        @save-artwork="saveEditedArtwork"
         @close="closePreview"
       />
     </Transition>
@@ -135,6 +136,17 @@ const paletteEdits = ref<Record<string, string>>({})
 const editPaletteId = ref<string | null>(null)
 const undoStack = ref<string[][]>([])
 const redoStack = ref<string[][]>([])
+type EditorSnapshot = {
+  image: string
+  settings: ReturnType<typeof savedSettings>
+  paletteEdits: Record<string, string>
+  paletteIndexMap: Uint8Array | null
+  paletteBaseColors: string[]
+  paletteColors: string[]
+  editPaletteId: string | null
+}
+const customUndoStack = ref<EditorSnapshot[]>([])
+const customRedoStack = ref<EditorSnapshot[]>([])
 const maxPaletteHistory = 50
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -274,7 +286,13 @@ const changePaletteColor = (index: number, color: string) => {
 
 const undoPaletteColor = () => {
   const previous = undoStack.value.pop()
-  if (!previous) return
+  if (!previous) {
+    const snapshot = customUndoStack.value.pop()
+    if (!snapshot || !sourceFile.value) return
+    customRedoStack.value.push(captureEditorSnapshot())
+    void restoreEditorSnapshot(snapshot)
+    return
+  }
   redoStack.value.push([...paletteColors.value])
   paletteColors.value = previous
   syncPaletteEdits(previous)
@@ -284,7 +302,13 @@ const undoPaletteColor = () => {
 
 const redoPaletteColor = () => {
   const next = redoStack.value.pop()
-  if (!next) return
+  if (!next) {
+    const snapshot = customRedoStack.value.pop()
+    if (!snapshot || !sourceFile.value) return
+    customUndoStack.value.push(captureEditorSnapshot())
+    void restoreEditorSnapshot(snapshot)
+    return
+  }
   undoStack.value.push([...paletteColors.value])
   paletteColors.value = next
   syncPaletteEdits(next)
@@ -293,9 +317,63 @@ const redoPaletteColor = () => {
 }
 
 const applyCustomPalette = (colors: string[]) => {
+  if (canvas.value) {
+    customUndoStack.value.push(captureEditorSnapshot())
+    if (customUndoStack.value.length > maxPaletteHistory) customUndoStack.value.shift()
+    customRedoStack.value = []
+  }
   settings.setCustomColors(colors)
   settings.setPalette('custom')
   reprocessArtwork()
+}
+
+const captureEditorSnapshot = (): EditorSnapshot => ({
+  image: canvas.value?.toDataURL('image/png') ?? '',
+  settings: savedSettings(),
+  paletteEdits: { ...paletteEdits.value },
+  paletteIndexMap: paletteIndexMap.value ? new Uint8Array(paletteIndexMap.value) : null,
+  paletteBaseColors: [...paletteBaseColors.value],
+  paletteColors: [...paletteColors.value],
+  editPaletteId: editPaletteId.value,
+})
+
+const restoreEditorSnapshot = async (snapshot: EditorSnapshot) => {
+  if (!snapshot.image || !sourceFile.value) return
+  selectedPalette.value = snapshot.settings.selectedPalette
+  selectedSize.value = snapshot.settings.selectedSize
+  selectedStyle.value = snapshot.settings.selectedStyle
+  settings.setCustomColors(snapshot.settings.selectedColors)
+  ditherStrength.value = snapshot.settings.ditherStrength
+  erodeStrength.value = snapshot.settings.erodeStrength
+  contrastStrength.value = snapshot.settings.contrastStrength
+  paletteEdits.value = { ...snapshot.paletteEdits }
+  paletteIndexMap.value = snapshot.paletteIndexMap ? new Uint8Array(snapshot.paletteIndexMap) : null
+  paletteBaseColors.value = [...snapshot.paletteBaseColors]
+  paletteColors.value = [...snapshot.paletteColors]
+  editPaletteId.value = snapshot.editPaletteId
+  const image = new Image()
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('Saved editor state failed to load'))
+    image.src = snapshot.image
+  })
+  const target = canvas.value
+  const context = target?.getContext('2d')
+  if (!target || !context) return
+  target.width = image.naturalWidth
+  target.height = image.naturalHeight
+  context.imageSmoothingEnabled = false
+  context.drawImage(image, 0, 0)
+  if (showPreview.value) previewImage.value = snapshot.image
+  persistEditedArtwork()
+}
+
+const saveEditedArtwork = async (dataUrl: string) => {
+  const target = canvas.value
+  const original = sourceFile.value
+  if (!target || !original) return
+  await drawArtwork(dataUrl, target.width, target.height)
+  persistEditedArtwork()
 }
 
 const onPaletteHistoryKeydown = (event: KeyboardEvent) => {
@@ -479,6 +557,7 @@ const processFile = async(file: File, preserveOnError = false) => {
     paletteIndexMap.value = nextPaletteIndexMap
     const nextPalette = responsePalette.map(rgbToHex)
     const nextEditPaletteId = nextPaletteIndexMap ? selectedPalette.value : null
+    editPaletteId.value = nextEditPaletteId
     paletteBaseColors.value = nextPalette
     const nextPaletteColors = nextPalette.map((baseColor) =>
       nextEditPaletteId
@@ -585,10 +664,8 @@ onMounted(async () => {
     try {
       const project = await getRecentProject()
       if (!rememberLastProject.value || sourceFile.value || latestRequestId !== 0) return
-      if (project && project.original instanceof Blob && project.converted instanceof Blob) {
-        const restoredFile = new File([project.original], project.originalName, {
-          type: project.originalType || project.original.type || 'image/png',
-        })
+
+      if(project){
         selectedPalette.value = project.settings.selectedPalette
         selectedSize.value = project.settings.selectedSize
         selectedStyle.value = project.settings.selectedStyle
@@ -597,13 +674,25 @@ onMounted(async () => {
         erodeStrength.value = project.settings.erodeStrength
         contrastStrength.value = project.settings.contrastStrength
         paletteEdits.value = project.paletteEdits ?? {}
-        sourceFile.value = restoredFile
+      }
+
+      if (project&& project.converted instanceof Blob) {
+        const restoredFile = new File([project.original], project.originalName, {
+          type: project.originalType || project.original.type || 'image/png',
+        })
         const convertedUrl = URL.createObjectURL(project.converted)
+        sourceFile.value = restoredFile
         try {
           await drawArtwork(convertedUrl, project.width, project.height)
         } finally {
           URL.revokeObjectURL(convertedUrl)
         }
+      }
+      else if(project && project.original instanceof Blob){
+        const restoredFile = new File([project.original], project.originalName, {
+          type: project.originalType || project.original.type || 'image/png',
+        })
+        sourceFile.value = restoredFile
         void processFile(restoredFile, true)
       }
     } catch (error) {
@@ -667,7 +756,7 @@ onUnmounted(() => {
   overflow: hidden;
   place-items: center;
   border: 1px solid var(--px-grid);
-  background-color: #0e0d18;
+  background-color: var(--px-surface);
   background-image:
     linear-gradient(var(--px-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
@@ -690,7 +779,7 @@ onUnmounted(() => {
   min-height: inherit;
   place-content: center;
   border: 0;
-  background: rgb(11 10 19 / 70%);
+  background: color-mix(in srgb, var(--px-ink) 70%, transparent);
   color: var(--px-text);
   cursor: pointer;
 }
@@ -739,7 +828,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   border: 1px solid var(--px-grid);
   border-radius: var(--radius-sm);
-  background: rgb(11 10 19 / 85%);
+  background: color-mix(in srgb, var(--px-ink) 85%, transparent);
   color: var(--px-text-muted);
   font-size: 0.78rem;
   opacity: 0;
