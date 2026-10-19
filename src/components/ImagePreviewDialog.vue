@@ -253,7 +253,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   display: grid;
   place-items: center;
   padding: clamp(10px, 3vw, 28px);
-  background: rgb(0 0 0 / 82%);
+  background: color-mix(in srgb, var(--px-ink) 82%, transparent);
 }
 .preview-dialog {
   display: grid;
@@ -374,7 +374,7 @@ button:disabled { opacity: 0.45; cursor: default; }
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background-color: #0e0d18;
+  background-color: var(--px-surface);
   background-image: linear-gradient(var(--px-grid) 1px, transparent 1px), linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
   background-size: 8px 8px;
   cursor: grab;
