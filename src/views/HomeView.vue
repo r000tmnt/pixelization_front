@@ -667,7 +667,7 @@ onUnmounted(() => {
   overflow: hidden;
   place-items: center;
   border: 1px solid var(--px-grid);
-  background-color: #0e0d18;
+  background-color: var(--px-surface);
   background-image:
     linear-gradient(var(--px-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
@@ -690,7 +690,7 @@ onUnmounted(() => {
   min-height: inherit;
   place-content: center;
   border: 0;
-  background: rgb(11 10 19 / 70%);
+  background: color-mix(in srgb, var(--px-ink) 70%, transparent);
   color: var(--px-text);
   cursor: pointer;
 }
@@ -739,7 +739,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   border: 1px solid var(--px-grid);
   border-radius: var(--radius-sm);
-  background: rgb(11 10 19 / 85%);
+  background: color-mix(in srgb, var(--px-ink) 85%, transparent);
   color: var(--px-text-muted);
   font-size: 0.78rem;
   opacity: 0;
