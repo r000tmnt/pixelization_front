@@ -1,5 +1,5 @@
 <template>
-  <div class="preview-backdrop" @click.self="emit('close')">
+  <div class="preview-backdrop" @click.self="finishEditing">
     <section
       ref="dialog"
       class="preview-dialog custom-dialog"
@@ -11,16 +11,14 @@
       <header class="preview-header">
         <div class="preview-title-group">
           <h2 id="preview-title">{{ $t('preview-edit') }}</h2>
-          <button class="palette-toggle" type="button" @click="showPalettePanel = !showPalettePanel">
-            {{ showPalettePanel ? $t('hide-palette') : $t('show-palette') }}
-          </button>
+
           <button
             v-if="isMobile"
             class="close-button"
             style="margin-left: auto;"
             type="button"
             :aria-label="$t('close')"
-            @click="emit('close')">×</button>
+            @click="finishEditing">×</button>
         </div>
         <div class="preview-controls">
           <button type="button" :aria-label="$t('zoom-out')" :disabled="zoom <= MIN_ZOOM" @click="zoomAtCenter(zoom - ZOOM_STEP)">−</button>
@@ -33,78 +31,112 @@
             class="close-button"
             type="button"
             :aria-label="$t('close')"
-            @click="emit('close')">×</button>
+            @click="finishEditing">×</button>
         </div>
       </header>
       <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
-        <aside class="palette-drawer" :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
-          <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
-            <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
-            <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
-          </div>
-          <template v-if="paletteMode === 'image'">
-            <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
-            <div class="palette-list custom-color-list">
-            <label v-for="(color, index) in colors" :key="index" class="palette-color">
-              <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
-              <code>{{ color.toUpperCase() }}</code>
-              <input
-                type="color"
-                :value="color"
-                :aria-label="$t('palette-color') + ' ' + (index + 1)"
-                @change="(event) => emit('change-color', index, (event.target as HTMLInputElement).value)"
-              />
-            </label>
+        <aside
+          id="palette-drawer"
+          class="palette-drawer"
+          :style="{ padding: showPalettePanel? '14px' : 0 }"
+          :aria-label="$t(paletteMode === 'custom' ? 'label-custom' : 'edit-colors')">
+          <button
+            class="palette-toggle"
+            type="button"
+            :aria-label="$t('tool-handle')"
+            :aria-expanded="showPalettePanel"
+            aria-controls="palette-drawer"
+            @click="showPalettePanel = !showPalettePanel"
+          >
+            <span>{{ $t('tool-handle') }}</span>
+            <svg :class="{ open: showPalettePanel }" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6" /></svg>
+          </button>
+          <div class="drawer-content" :style="{ opacity: showPalettePanel ? 1 : 0, height: showPalettePanel ? 'auto' : 0 }" >
+            <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
+              <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
+              <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
             </div>
-            <footer class="palette-actions">
-              <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
-              <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button>
-            </footer>
-          </template>
-          <template v-else>
-            <p class="palette-description">{{ $t('custom-palette-hint') }}</p>
-            <label class="color-count">
-              <span>{{ $t('label-custom-color') }}</span>
-              <input type="range" min="2" max="16" step="1" :value="customDraft.length" @input="resizeCustomPalette" />
-              <output>{{ customDraft.length }}</output>
-            </label>
-            <div class="palette-list custom-color-list">
-              <label v-for="(color, index) in customDraft" :key="index" class="palette-color">
-                <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
-                <code>{{ color.toUpperCase() }}</code>
-                <input type="color" :value="color" :aria-label="$t('palette-color') + ' ' + (index + 1)" @input="(event) => updateCustomColor(event, index)" />
+            <template v-if="paletteMode === 'image'">
+              <p class="palette-description">{{ $t('edit-colors-hint') }}</p>
+              <div class="edit-tools" role="toolbar" :aria-label="$t('edit-tools')">
+                <button type="button" :aria-label="$t('magic-wand')" :title="$t('magic-wand')" :aria-pressed="tool === 'wand'" :class="{ active: tool === 'wand' }" @click="tool = 'wand'">
+                  <MagicWandIcon />
+                </button>
+                <button type="button" :aria-label="$t('brush')" :title="$t('brush')" :aria-pressed="tool === 'brush'" :class="{ active: tool === 'brush' }" @click="tool = 'brush'">
+                  <BrushIcon />
+                </button>
+                <button type="button" :aria-label="$t('eyedropper')" :title="$t('eyedropper')" :aria-pressed="tool === 'eyedropper'" :class="{ active: tool === 'eyedropper' }" @click="tool = 'eyedropper'">
+                  <EyeDropperIcon />
+                </button>
+                <button type="button" :aria-label="$t('hand')" :title="$t('hand')" :aria-pressed="tool === 'hand'" :class="{ active: tool === 'hand' }" @click="tool = 'hand'">
+                  <HandIcon />
+                </button>
+              </div>
+              <label class="edit-control">
+                <span>{{ $t('wand-tolerance') }}</span>
+                <input v-model.number="tolerance" type="range" min="0" max="100" step="1" />
+                <output>{{ tolerance }}</output>
               </label>
-            </div>
-            <footer class="palette-actions">
-              <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
-            </footer>
-          </template>
+              <label class="edit-control">
+                <span>{{ $t('brush-size') }}</span>
+                <input v-model.number="brushSize" type="range" min="1" max="64" step="1" />
+                <output>{{ brushSize }}px</output>
+              </label>
+              <label class="edit-control paint-color">
+                <!-- <span>{{ $t('paint-color') }}</span> -->
+                <input v-model="paintColor" type="color" />
+                <code>{{ paintColor.toUpperCase() }}</code>
+              </label>
+              <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
+              <footer class="palette-actions">
+                <button type="button" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">{{ $t('undo') }}</button>
+                <button type="button" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">{{ $t('redo') }}</button>
+                <!-- <button type="button" :disabled="!selection" @click="clearSelection">{{ $t('deselect') }}</button> -->
+              </footer>
+            </template>
+            <template v-else>
+              <p class="palette-description">{{ $t('custom-palette-hint') }}</p>
+              <label class="color-count">
+                <span>{{ $t('label-custom-color') }}</span>
+                <input type="range" min="2" max="16" step="1" :value="customDraft.length" @input="resizeCustomPalette" />
+                <output>{{ customDraft.length }}</output>
+              </label>
+              <div class="palette-list custom-color-list">
+                <label v-for="(color, index) in customDraft" :key="index" class="palette-color">
+                  <span class="palette-swatch" :style="{ backgroundColor: color }"></span>
+                  <code>{{ color.toUpperCase() }}</code>
+                  <input type="color" :value="color" :aria-label="$t('palette-color') + ' ' + (index + 1)" @input="(event) => updateCustomColor(event, index)" />
+                </label>
+              </div>
+              <footer class="palette-actions">
+                <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
+                <!-- <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
+                <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button> -->
+              </footer>
+            </template>
+          </div>
+
         </aside>
         <div
         ref="viewport"
         class="preview-viewport"
         :aria-busy="isProcessing"
-        :class="{ 'is-panning': isPanning }"
+        :class="{ 'is-panning': isPanning, 'is-hand-tool': tool === 'hand' }"
         @wheel.prevent="handleWheel"
-        @pointerdown="startPan"
+        @pointerdown="onViewportPointerDown"
         @pointermove="movePan"
         @pointerup="stopPan"
         @pointercancel="stopPan"
         >
-          <img
-          :src="src"
-          :alt="$t('preview-image-alt')"
-          :style="imageStyle"
-          draggable="false"
-            @load="onImageLoad"
-          />
+          <canvas ref="editCanvas" class="edit-canvas" :aria-label="$t('preview-image-alt')" :style="imageStyle" @contextmenu.prevent />
+          <canvas ref="selectionCanvas" class="selection-canvas" aria-hidden="true" :style="imageStyle" />
           <div v-if="isProcessing" class="processing-overlay" role="status">
             <span class="scan-line" aria-hidden="true"></span>
             <span>{{ $t('status-process') }}</span>
           </div>
         </div>
       </div>
-      <p class="preview-hint">{{ $t('preview-hint') }}</p>
+      <p v-if="!isMobile && !isPad" class="preview-hint">{{ $t('preview-hint') }}</p>
     </section>
   </div>
 </template>
@@ -112,7 +144,13 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useDefaultStore } from '@/stores/default'
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+
+// Icons
+import MagicWandIcon from '@/icons/MagicWand.vue'
+import EyeDropperIcon from '@/icons/EyeDropper.vue'
+import BrushIcon from '@/icons/BrushIcon.vue'
+import HandIcon from '@/icons/HandIcon.vue'
 
 const props = defineProps<{
   src: string
@@ -124,6 +162,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   close: []
+  'save-artwork': [dataUrl: string]
   'change-color': [index: number, color: string]
   undo: []
   redo: []
@@ -131,21 +170,35 @@ const emit = defineEmits<{
 }>()
 
 const defaultStore = useDefaultStore()
-const { isMobile } = storeToRefs(defaultStore)
+const { isMobile, isPad } = storeToRefs(defaultStore)
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
 const ZOOM_STEP = 0.1
 const dialog = ref<HTMLElement | null>(null)
 const viewport = ref<HTMLElement | null>(null)
+const editCanvas = ref<HTMLCanvasElement | null>(null)
+const selectionCanvas = ref<HTMLCanvasElement | null>(null)
 const zoom = ref(1)
 const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
 const paletteMode = ref<'image' | 'custom'>(props.colors.length ? 'image' : 'custom')
+const tool = ref<'wand' | 'brush' | 'eyedropper' | 'hand'>('hand')
+const tolerance = ref(24)
+const brushSize = ref(12)
+const paintColor = ref('#000000')
+const selection = ref<Uint8Array | null>(null)
+const undoImages = ref<ImageData[]>([])
+const redoImages = ref<ImageData[]>([])
+const undoSelections = ref<(Uint8Array | null)[]>([])
+const redoSelections = ref<(Uint8Array | null)[]>([])
+let imageLoadedSrc = ''
+let brushPainting = false
+let antOffset = 0
+let antTimer: ReturnType<typeof setInterval> | undefined
 const customDraft = ref<string[]>(props.selectedColors.length ? [...props.selectedColors] : ['#000000', '#ffffff'])
-let fitDimensions = ''
 let panPointerId: number | null = null
 let lastPointerX = 0
 let lastPointerY = 0
@@ -153,6 +206,225 @@ let lastPointerY = 0
 const imageStyle = computed(() => ({
   transform: `translate(calc(-50% + ${offsetX.value}px), calc(-50% + ${offsetY.value}px)) scale(${zoom.value})`,
 }))
+
+const loadEditorImage = async () => {
+  if (!editCanvas.value || !props.src || imageLoadedSrc === props.src) return
+  const image = new Image()
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('Preview image failed to load'))
+    image.src = props.src
+  })
+  const target = editCanvas.value
+  target.width = image.naturalWidth
+  target.height = image.naturalHeight
+  const context = target.getContext('2d')
+  if (!context) return
+  context.imageSmoothingEnabled = false
+  context.drawImage(image, 0, 0)
+  if (selectionCanvas.value) {
+    selectionCanvas.value.width = target.width
+    selectionCanvas.value.height = target.height
+  }
+  selection.value = null
+  stopSelectionAnts()
+  undoImages.value = []
+  redoImages.value = []
+  undoSelections.value = []
+  redoSelections.value = []
+  imageLoadedSrc = props.src
+  drawSelection()
+  await fitImage()
+}
+
+const drawSelection = () => {
+  const target = selectionCanvas.value
+  const mask = selection.value
+  const ctx = target?.getContext('2d')
+  if (!target || !ctx) return
+  ctx.clearRect(0, 0, target.width, target.height)
+  if (!mask) return
+  const overlay = ctx.createImageData(target.width, target.height)
+  if (tool.value === 'wand') {
+    for (let i = 0; i < mask.length; i++) {
+      if (!mask[i]) continue
+      const offset = i * 4
+      overlay.data[offset] = 50
+      overlay.data[offset + 1] = 30
+      overlay.data[offset + 2] = 180
+      overlay.data[offset + 3] = 75
+    }
+  }
+  // Mark the selection edge in the same pixel buffer to keep large regions responsive.
+  const w = target.width
+  const h = target.height
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x
+    if (!mask[i]) continue
+    if (x === 0 || y === 0 || x === w - 1 || y === h - 1 || !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) {
+      const offset = i * 4
+      const lightDash = Math.floor((x + y + antOffset) / 4) % 2 === 0
+      overlay.data[offset] = lightDash ? 255 : 20
+      overlay.data[offset + 1] = lightDash ? 255 : 20
+      overlay.data[offset + 2] = lightDash ? 255 : 20
+      overlay.data[offset + 3] = 255
+    }
+  }
+  ctx.putImageData(overlay, 0, 0)
+}
+
+const rememberEdit = () => {
+  const ctx = editCanvas.value?.getContext('2d')
+  if (!editCanvas.value || !ctx) return
+  undoImages.value.push(ctx.getImageData(0, 0, editCanvas.value.width, editCanvas.value.height))
+  undoSelections.value.push(selection.value ? new Uint8Array(selection.value) : null)
+  if (undoImages.value.length > 50) { undoImages.value.shift(); undoSelections.value.shift() }
+  redoImages.value = []
+  redoSelections.value = []
+}
+
+const restoreEdit = (image: ImageData, mask: Uint8Array | null) => {
+  const ctx = editCanvas.value?.getContext('2d')
+  if (!ctx) return
+  ctx.putImageData(image, 0, 0)
+  selection.value = mask ? new Uint8Array(mask) : null
+  if (selection.value && !antTimer) startSelectionAnts()
+  else if (!selection.value) stopSelectionAnts()
+  drawSelection()
+}
+
+const undoEdit = () => {
+  const ctx = editCanvas.value?.getContext('2d')
+  const canvas = editCanvas.value
+  const previous = undoImages.value.pop()
+  if (!ctx || !canvas || !previous) return
+  redoImages.value.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
+  redoSelections.value.push(selection.value ? new Uint8Array(selection.value) : null)
+  restoreEdit(previous, undoSelections.value.pop() ?? null)
+}
+
+const redoEdit = () => {
+  const ctx = editCanvas.value?.getContext('2d')
+  const canvas = editCanvas.value
+  const next = redoImages.value.pop()
+  if (!ctx || !canvas || !next) return
+  undoImages.value.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
+  undoSelections.value.push(selection.value ? new Uint8Array(selection.value) : null)
+  restoreEdit(next, redoSelections.value.pop() ?? null)
+}
+
+const imagePoint = (event: PointerEvent) => {
+  const area = viewport.value
+  const canvas = editCanvas.value
+  if (!area || !canvas) return null
+  const rect = area.getBoundingClientRect()
+  const scale = zoom.value
+  const x = (event.clientX - (rect.left + rect.width / 2) - offsetX.value) / scale + canvas.width / 2
+  const y = (event.clientY - (rect.top + rect.height / 2) - offsetY.value) / scale + canvas.height / 2
+  if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return null
+  return { x: Math.floor(x), y: Math.floor(y) }
+}
+
+const selectRegion = (x: number, y: number) => {
+  const canvas = editCanvas.value
+  const ctx = canvas?.getContext('2d')
+  if (!canvas || !ctx) return
+  const { width, height } = canvas
+  const pixels = ctx.getImageData(0, 0, width, height).data
+  const seed = (y * width + x) * 4
+  const sr = pixels[seed]!, sg = pixels[seed + 1]!, sb = pixels[seed + 2]!
+  const threshold = tolerance.value * 4.42
+  const mask = new Uint8Array(width * height)
+  const visited = new Uint8Array(width * height)
+  const queue = new Int32Array(width * height)
+  let head = 0, tail = 0
+  const seedIndex = y * width + x
+  queue[tail++] = seedIndex
+  visited[seedIndex] = 1
+  while (head < tail) {
+    const index = queue[head++]!
+    const p = index * 4
+    const dr = pixels[p]! - sr, dg = pixels[p + 1]! - sg, db = pixels[p + 2]! - sb
+    if (Math.sqrt(dr * dr + dg * dg + db * db) > threshold) continue
+    mask[index] = 1
+    const px = index % width
+    const py = Math.floor(index / width)
+    const neighbors = [px > 0 ? index - 1 : -1, px + 1 < width ? index + 1 : -1, py > 0 ? index - width : -1, py + 1 < height ? index + width : -1]
+    for (const neighbor of neighbors) if (neighbor >= 0 && !visited[neighbor]) { visited[neighbor] = 1; queue[tail++] = neighbor }
+  }
+  rememberEdit()
+  selection.value = mask
+  startSelectionAnts()
+  drawSelection()
+}
+
+const startSelectionAnts = () => {
+  stopSelectionAnts()
+  antOffset = 0
+  antTimer = setInterval(() => {
+    antOffset = (antOffset + 1) % 8
+    drawSelection()
+  }, 120)
+}
+
+const stopSelectionAnts = () => {
+  if (antTimer) clearInterval(antTimer)
+  antTimer = undefined
+}
+
+const paintAt = (x: number, y: number) => {
+  const canvas = editCanvas.value
+  const ctx = canvas?.getContext('2d')
+  const mask = selection.value
+  if (!canvas || !ctx) return
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  // Image points are pixel indices; paint around pixel centers. At 1 px this
+  // makes the clicked source pixel the exact target instead of missing it.
+  const centerX = x + 0.5
+  const centerY = y + 0.5
+  const radius = brushSize.value / 2
+  const minX = Math.max(0, Math.floor(x - radius)), maxX = Math.min(canvas.width - 1, Math.ceil(x + radius))
+  const minY = Math.max(0, Math.floor(y - radius)), maxY = Math.min(canvas.height - 1, Math.ceil(y + radius))
+  const r = parseInt(paintColor.value.slice(1, 3), 16), g = parseInt(paintColor.value.slice(3, 5), 16), b = parseInt(paintColor.value.slice(5, 7), 16)
+  for (let py = minY; py <= maxY; py++) for (let px = minX; px <= maxX; px++) {
+    const dx = px + 0.5 - centerX, dy = py + 0.5 - centerY
+    const index = py * canvas.width + px
+    if (dx * dx + dy * dy > radius * radius || mask && !mask[index]) continue
+    const offset = index * 4
+    image.data[offset] = r; image.data[offset + 1] = g; image.data[offset + 2] = b; image.data[offset + 3] = 255
+  }
+  ctx.putImageData(image, 0, 0)
+}
+
+const onViewportPointerDown = (event: PointerEvent) => {
+  const point = imagePoint(event)
+  if (point && paletteMode.value === 'image') {
+    if (tool.value === 'wand') { selectRegion(point.x, point.y); return }
+    if (tool.value === 'eyedropper') {
+      const context = editCanvas.value?.getContext('2d')
+      if (!context) return
+      const pixel = context.getImageData(point.x, point.y, 1, 1).data
+      paintColor.value = `#${[pixel[0], pixel[1], pixel[2]].map((channel) => channel!.toString(16).padStart(2, '0')).join('')}`
+      tool.value = 'brush'
+      return
+    }
+    if (tool.value === 'brush') {
+      rememberEdit()
+      brushPainting = true
+      paintAt(point.x, point.y)
+      viewport.value?.setPointerCapture(event.pointerId)
+      return
+    }
+  }
+  startPan(event)
+}
+
+const finishEditing = () => {
+  if (editCanvas.value && imageLoadedSrc) emit('save-artwork', editCanvas.value.toDataURL('image/png'))
+  emit('close')
+}
+
+// const clearSelection = () => { rememberEdit(); selection.value = null; stopSelectionAnts(); drawSelection() }
 
 const resizeCustomPalette = (event: Event) => {
   const length = Number((event.target as HTMLInputElement).value)
@@ -191,22 +463,14 @@ const handleWheel = (event: WheelEvent) => {
 const fitImage = async () => {
   await nextTick()
   const area = viewport.value
-  const picture = area?.querySelector('img')
-  if (!area || !picture?.naturalWidth || !picture.naturalHeight) return
+  const picture = editCanvas.value
+  if (!area || !picture?.width || !picture.height) return
   const rect = area.getBoundingClientRect()
   // Fit may go below the manual zoom minimum for large images, and can enlarge
   // small images up to the manual zoom maximum.
-  zoom.value = Math.min(MAX_ZOOM, rect.width / picture.naturalWidth, rect.height / picture.naturalHeight)
+  zoom.value = Math.min(MAX_ZOOM, rect.width / picture.width, rect.height / picture.height)
   offsetX.value = 0
   offsetY.value = 0
-}
-
-const onImageLoad = async (event: Event) => {
-  const picture = event.target as HTMLImageElement
-  const dimensions = `${picture.naturalWidth}x${picture.naturalHeight}`
-  if (dimensions === fitDimensions) return
-  fitDimensions = dimensions
-  await fitImage()
 }
 
 const startPan = (event: PointerEvent) => {
@@ -219,6 +483,11 @@ const startPan = (event: PointerEvent) => {
 }
 
 const movePan = (event: PointerEvent) => {
+  if (brushPainting) {
+    const point = imagePoint(event)
+    if (point) paintAt(point.x, point.y)
+    return
+  }
   if (!isPanning.value || event.pointerId !== panPointerId) return
   offsetX.value += event.clientX - lastPointerX
   offsetY.value += event.clientY - lastPointerY
@@ -227,6 +496,11 @@ const movePan = (event: PointerEvent) => {
 }
 
 const stopPan = (event: PointerEvent) => {
+  if (brushPainting) {
+    brushPainting = false
+    drawSelection()
+    return
+  }
   if (event.pointerId !== panPointerId) return
   isPanning.value = false
   panPointerId = null
@@ -234,15 +508,39 @@ const stopPan = (event: PointerEvent) => {
 
 const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') emit('close')
+  if (!(event.ctrlKey || event.metaKey)) return
+  const key = event.key.toLowerCase()
+  if (key === 'z' && event.shiftKey && redoImages.value.length) {
+    event.preventDefault()
+    event.stopPropagation()
+    redoEdit()
+  } else if (key === 'y' && redoImages.value.length) {
+    event.preventDefault()
+    event.stopPropagation()
+    redoEdit()
+  } else if (key === 'z' && undoImages.value.length) {
+    event.preventDefault()
+    event.stopPropagation()
+    undoEdit()
+  }
 }
 
 onMounted(() => {
   showPalettePanel.value = window.innerWidth > 899
   dialog.value?.focus()
-  window.addEventListener('keydown', onKeyDown)
+  void loadEditorImage()
+  window.addEventListener('keydown', onKeyDown, true)
 })
 
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+watch(() => props.src, () => { imageLoadedSrc = ''; void loadEditorImage() })
+watch(tool, drawSelection)
+watch(() => props.selectedColors, (colors) => {
+  customDraft.value = colors.length ? [...colors] : ['#000000', '#ffffff']
+})
+onUnmounted(() => {
+  stopSelectionAnts()
+  window.removeEventListener('keydown', onKeyDown, true)
+})
 </script>
 
 <style scoped>
@@ -310,7 +608,6 @@ button:disabled { opacity: 0.45; cursor: default; }
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: 14px;
   border: 1px solid var(--px-grid);
   border-radius: var(--radius-sm);
   background: var(--px-surface);
@@ -323,6 +620,19 @@ button:disabled { opacity: 0.45; cursor: default; }
 .color-count { display: grid; grid-template-columns: auto minmax(0, 1fr) 24px; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; }
 .color-count output { color: var(--px-text-muted); text-align: right; }
 .color-count input { min-width: 0; accent-color: var(--px-azure); }
+.edit-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.edit-tools button { min-height: 38px; font-size: 0.82rem; }
+.edit-tools button { display: grid; place-items: center; padding: 0; }
+.edit-tools svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.edit-tools button.active { border-color: var(--px-violet); background: var(--px-violet); color: var(--px-ink); font-weight: 700; }
+.edit-tools button:disabled { opacity: 0.45; cursor: default; }
+.edit-control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 7px 10px; margin-top: 10px; color: var(--px-text-muted); font-size: 0.78rem; }
+.edit-control input[type="range"] { grid-column: 1; width: 100%; accent-color: var(--px-azure); }
+.edit-control output { grid-column: 2; grid-row: 2; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+.paint-color { grid-template-columns: auto 30px minmax(0, 1fr); }
+.paint-color input { width: 30px; height: 30px; padding: 2px; border: 1px solid var(--px-grid); border-radius: 4px; background: transparent; }
+.paint-color code { color: var(--px-text-muted); font-size: 0.72rem; }
+.selection-status { min-height: 2.4em; margin: 0; color: var(--px-text-muted); font-size: 0.76rem; line-height: 1.4; }
 .palette-list { display: grid; flex: 1; gap: 7px; min-height: 0; overflow: auto; }
 .custom-color-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
 .palette-color {
@@ -381,7 +691,11 @@ button:disabled { opacity: 0.45; cursor: default; }
   touch-action: none;
 }
 .preview-viewport.is-panning { cursor: grabbing; }
-.preview-viewport img {
+.preview-viewport:has(.edit-canvas) { cursor: crosshair; }
+.preview-viewport.is-hand-tool { cursor: grab; }
+.preview-viewport.is-hand-tool.is-panning { cursor: grabbing; }
+.preview-viewport .edit-canvas,
+.preview-viewport .selection-canvas {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -393,23 +707,65 @@ button:disabled { opacity: 0.45; cursor: default; }
   pointer-events: none;
   user-select: none;
 }
+.preview-viewport .selection-canvas { z-index: 1; }
 .preview-hint { margin: 10px 0 0; color: var(--px-text-muted); font-size: 0.78rem; text-align: center; }
 button:focus-visible,
 .preview-dialog:focus-visible,
 .palette-color input:focus-visible { outline: 2px solid var(--px-azure); outline-offset: 2px; }
 @media (max-width: 899px) {
   .preview-workspace { grid-template-columns: minmax(0, 1fr); }
-  .palette-toggle { display: inline-flex; align-items: center; }
-  .palette-drawer { display: none; }
-  .preview-workspace.palette-open .palette-drawer {
+  .palette-toggle {
+    position: absolute;
+    z-index: 5;
+    top: -30px;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    /* min-width: 142px;
+    min-height: 46px; */
+    padding: 0 20px;
+    border-radius: 12px 12px 0 0;
+    /* border-color: var(--px-azure);
+    background: var(--px-azure); */
+    color: var(--px-text-muted);
+    box-shadow: 0 4px 18px rgb(0 0 0 / 45%);
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%);
+    width: 100.5%;
+  }
+  .palette-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    transition: transform 200ms ease;
+  }
+  .palette-toggle svg.open {
+    transform: rotate(180deg);
+  }
+  .palette-drawer {
     position: absolute;
     z-index: 2;
     right: 0;
     bottom: 0;
     left: 0;
     display: flex;
-    max-height: 58%;
+    /* max-height: min(66%, 65vh); */
     box-shadow: 0 -12px 30px rgb(0 0 0 / 45%);
+    opacity: 1;
+    pointer-events: none;
+    transform: translateY(calc(100% - 1px));
+    transition: transform 240ms ease, padding 0.2s ease;
+  }
+  .preview-workspace.palette-open .palette-drawer {
+    pointer-events: auto;
+    transform: translateY(0);
   }
 }
 @media (max-width: 620px) {
