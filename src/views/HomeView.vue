@@ -585,10 +585,8 @@ onMounted(async () => {
     try {
       const project = await getRecentProject()
       if (!rememberLastProject.value || sourceFile.value || latestRequestId !== 0) return
-      if (project && project.original instanceof Blob && project.converted instanceof Blob) {
-        const restoredFile = new File([project.original], project.originalName, {
-          type: project.originalType || project.original.type || 'image/png',
-        })
+
+      if(project){
         selectedPalette.value = project.settings.selectedPalette
         selectedSize.value = project.settings.selectedSize
         selectedStyle.value = project.settings.selectedStyle
@@ -597,13 +595,25 @@ onMounted(async () => {
         erodeStrength.value = project.settings.erodeStrength
         contrastStrength.value = project.settings.contrastStrength
         paletteEdits.value = project.paletteEdits ?? {}
-        sourceFile.value = restoredFile
+      }
+
+      if (project&& project.converted instanceof Blob) {
+        const restoredFile = new File([project.original], project.originalName, {
+          type: project.originalType || project.original.type || 'image/png',
+        })
         const convertedUrl = URL.createObjectURL(project.converted)
+        sourceFile.value = restoredFile
         try {
           await drawArtwork(convertedUrl, project.width, project.height)
         } finally {
           URL.revokeObjectURL(convertedUrl)
         }
+      }
+      else if(project && project.original instanceof Blob){
+        const restoredFile = new File([project.original], project.originalName, {
+          type: project.originalType || project.original.type || 'image/png',
+        })
+        sourceFile.value = restoredFile
         void processFile(restoredFile, true)
       }
     } catch (error) {
