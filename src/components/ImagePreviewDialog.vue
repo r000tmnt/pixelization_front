@@ -53,7 +53,7 @@
           </button>
           <div class="drawer-content" :style="{ opacity: showPalettePanel ? 1 : 0, height: showPalettePanel ? 'auto' : 0 }" >
             <div class="palette-modes" role="tablist" :aria-label="$t('palette-edit-mode')">
-              <button v-if="colors.length" type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
+              <button type="button" role="tab" :aria-selected="paletteMode === 'image'" :class="{ active: paletteMode === 'image' }" @click="paletteMode = 'image'">{{ $t('edit-colors') }}</button>
               <button type="button" role="tab" :aria-selected="paletteMode === 'custom'" :class="{ active: paletteMode === 'custom' }" @click="paletteMode = 'custom'">{{ $t('label-custom') }}</button>
             </div>
             <template v-if="paletteMode === 'image'">
@@ -89,9 +89,15 @@
               </label>
               <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
               <footer class="palette-actions">
-                <button type="button" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">{{ $t('undo') }}</button>
-                <button type="button" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">{{ $t('redo') }}</button>
-                <!-- <button type="button" :disabled="!selection" @click="clearSelection">{{ $t('deselect') }}</button> -->
+                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">
+                  <UndoIcon />
+                </button>
+                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">
+                  <RedoIcon />
+                </button>
+                <button type="button" :aria-label="$t('deselect')" :title="$t('deselect')" :disabled="!selection" @click="clearSelection">
+                  <RemoveSelectIcon />
+                </button>
               </footer>
             </template>
             <template v-else>
@@ -151,6 +157,9 @@ import MagicWandIcon from '@/icons/MagicWand.vue'
 import EyeDropperIcon from '@/icons/EyeDropper.vue'
 import BrushIcon from '@/icons/BrushIcon.vue'
 import HandIcon from '@/icons/HandIcon.vue'
+import UndoIcon from '@/icons/UndoIcon.vue'
+import RedoIcon from '@/icons/RedoIcon.vue'
+import RemoveSelectIcon from '@/icons/RemoveSelect.vue'
 
 const props = defineProps<{
   src: string
@@ -184,7 +193,7 @@ const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
-const paletteMode = ref<'image' | 'custom'>(props.colors.length ? 'image' : 'custom')
+const paletteMode = ref<'image' | 'custom'>('image')
 const tool = ref<'wand' | 'brush' | 'eyedropper' | 'hand'>('hand')
 const tolerance = ref(24)
 const brushSize = ref(12)
@@ -429,7 +438,7 @@ const finishEditing = () => {
   emit('close')
 }
 
-// const clearSelection = () => { rememberEdit(); selection.value = null; stopSelectionAnts(); drawSelection() }
+const clearSelection = () => { rememberEdit(); selection.value = null; stopSelectionAnts(); drawSelection() }
 
 const resizeCustomPalette = (event: Event) => {
   const length = Number((event.target as HTMLInputElement).value)
@@ -683,6 +692,8 @@ button:disabled { opacity: 0.45; cursor: default; }
   cursor: pointer;
 }
 .palette-actions button:disabled { opacity: 0.45; cursor: default; }
+.palette-actions button:not(.apply-custom) { display: grid; min-width: 36px; place-items: center; padding: 0; }
+.palette-actions button:not(.apply-custom) svg { width: 19px; height: 19px; }
 .palette-actions .apply-custom { width: 100%; border-color: var(--px-azure); background: var(--px-azure); color: var(--px-ink); }
 .preview-viewport {
   position: relative;
