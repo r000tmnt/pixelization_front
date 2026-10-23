@@ -4,8 +4,6 @@
       <!-- <p class="eyebrow">Creative image utility</p> -->
        <div class="title">
           <h1>Pixelization</h1>
-          <!-- <img src="/pixelization_logo.png" alt="logo" /> -->
-          <small>v {{ version }}</small>
 
           <SettingToggle
             v-if="isPad"
@@ -189,8 +187,6 @@ const {
 } = storeToRefs(settings)
 
 const visiblePalettes = computed(() => palettes.value.filter((palette) => palette.id !== 'custom'))
-
-const version = import.meta.env.VITE_APP_VERSION
 
 const checkViewPort = computed(() => {
   if(selectedPalette.value !== 'original' && window.innerHeight < 800){

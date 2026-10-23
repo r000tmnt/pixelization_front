@@ -1,77 +1,104 @@
 <template>
-  <main class="workspace-shell">
-    <PixelizationTools
-      :has-artwork="hasArtwork"
-      :is-processing="isProcessing"
-      @choose-image="openFilePicker"
-      @export-image="downloadArtwork"
-      @settings-changed="reprocessArtwork"
-      @settings-changed-debounced="scheduleReprocessArtwork"
+  <div>
+    <welcomeSection
+      v-if="!start"
+      @close="start = true"
       @show-settings="(v) => showSettings = v"
     />
-    <section class="artwork-zone" aria-labelledby="stage-title">
-      <input
-        ref="fileInput"
-        class="visually-hidden"
-        type="file"
-        accept="image/*"
-        aria-label="Choose an image to pixelize"
-        @change="handleFileInput"
+    <main class="workspace-shell" v-else>
+      <PixelizationTools
+        :has-artwork="hasArtwork"
+        :is-processing="isProcessing"
+        @choose-image="openFilePicker"
+        @export-image="downloadArtwork"
+        @settings-changed="reprocessArtwork"
+        @settings-changed-debounced="scheduleReprocessArtwork"
+        @show-settings="(v) => showSettings = v"
       />
-      <div class="stage-meta">
-        <div class="stage-status">
-          <div class="status-row" aria-live="polite">
-            <span :class="['status-dot', status.type]" aria-hidden="true"></span
-            ><span>{{ $t(status.label) }}</span>
+      <section class="artwork-zone" aria-labelledby="stage-title">
+        <input
+          ref="fileInput"
+          class="visually-hidden"
+          type="file"
+          accept="image/*"
+          aria-label="Choose an image to pixelize"
+          @change="handleFileInput"
+        />
+        <div class="stage-meta">
+          <div class="stage-status">
+            <div class="status-row" aria-live="polite">
+              <span :class="['status-dot', status.type]" aria-hidden="true"></span
+              ><span>{{ $t(status.label) }}</span>
+            </div>
           </div>
-        </div>
 
-        <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
-      </div>
-      <div
-        :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
-        @dragenter.prevent="isDragging = true"
-        @dragover.prevent="isDragging = true"
-        @dragleave.prevent="isDragging = false"
-        @drop.prevent="handleDrop"
-      >
-        <button v-if="!hasArtwork" class="upload-zone" type="button" @click="openFilePicker">
-          <span class="upload-icon" aria-hidden="true">+</span
-          ><strong>{{ $t("upload-hint") }}</strong
-          ><small>{{ $t("upload-type") }}</small>
-          <small>{{ $t("upload-limit", {limit: settings.sizeLimitMB}) }}</small>
-        </button>
-        <div v-else class="canvas-wrap">
-          <canvas ref="canvas" aria-label="Pixelized artwork" @click="openFilePicker"></canvas
-          ><button class="replace-overlay" type="button" @click="openFilePicker">
-            {{ $t("upload-change") }}
+          <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
+        </div>
+        <div
+          :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
+          @dragenter.prevent="isDragging = true"
+          @dragover.prevent="isDragging = true"
+          @dragleave.prevent="isDragging = false"
+          @drop.prevent="handleDrop"
+        >
+          <button v-if="!hasArtwork" class="upload-zone" type="button" @click="openFilePicker">
+            <span class="upload-icon" aria-hidden="true">+</span
+            ><strong>{{ $t("upload-hint") }}</strong
+            ><small>{{ $t("upload-type") }}</small>
+            <small>{{ $t("upload-limit", {limit: settings.sizeLimitMB}) }}</small>
+          </button>
+          <div v-else class="canvas-wrap">
+            <canvas ref="canvas" aria-label="Pixelized artwork" @click="openFilePicker"></canvas
+            ><button class="replace-overlay" type="button" @click="openFilePicker">
+              {{ $t("upload-change") }}
+            </button>
+          </div>
+          <div v-if="isProcessing" class="processing-overlay" role="status">
+            <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
+          </div>
+          <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
+        </div>
+        <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
+          <button
+            ref="previewButton"
+            class="button secondary"
+            type="button"
+            :disabled="!hasArtwork || isProcessing"
+            @click="openPreview"
+          >
+            {{ $t("preview-edit") }}
+          </button>
+          <button
+            class="button secondary"
+            type="button"
+            :disabled="!hasArtwork || isProcessing"
+            @click="downloadArtwork"
+          >
+            {{ $t("download") }}
           </button>
         </div>
-        <div v-if="isProcessing" class="processing-overlay" role="status">
-          <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
-        </div>
-        <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
-      </div>
-      <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
-        <button
-          ref="previewButton"
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="openPreview"
-        >
-          {{ $t("preview-edit") }}
-        </button>
-        <button
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="downloadArtwork"
-        >
-          {{ $t("download") }}
-        </button>
-      </div>
-    </section>
+      </section>
+
+      <Transition name="fade">
+        <ImagePreviewDialog
+          v-if="showPreview && previewImage"
+          :src="previewImage"
+          :colors="paletteColors"
+          :selected-colors="selectedColors"
+          :can-undo="undoStack.length > 0 || customUndoStack.length > 0"
+          :can-redo="redoStack.length > 0 || customRedoStack.length > 0"
+          :is-processing="isProcessing"
+          @change-color="changePaletteColor"
+          @undo="undoPaletteColor"
+          @redo="redoPaletteColor"
+          @apply-custom="applyCustomPalette"
+          @save-artwork="saveEditedArtwork"
+          @close="closePreview"
+        />
+      </Transition>
+
+      <footerSection v-if="isPad" />
+    </main>
 
     <Transition name="fade">
       <SettingsDialog
@@ -79,27 +106,8 @@
         @close="showSettings = false"
       />
     </Transition>
+  </div>
 
-    <Transition name="fade">
-      <ImagePreviewDialog
-        v-if="showPreview && previewImage"
-        :src="previewImage"
-        :colors="paletteColors"
-        :selected-colors="selectedColors"
-        :can-undo="undoStack.length > 0 || customUndoStack.length > 0"
-        :can-redo="redoStack.length > 0 || customRedoStack.length > 0"
-        :is-processing="isProcessing"
-        @change-color="changePaletteColor"
-        @undo="undoPaletteColor"
-        @redo="redoPaletteColor"
-        @apply-custom="applyCustomPalette"
-        @save-artwork="saveEditedArtwork"
-        @close="closePreview"
-      />
-    </Transition>
-
-    <footerSection v-if="isPad" />
-  </main>
 </template>
 
 <script setup lang="ts">
@@ -109,6 +117,7 @@ import footerSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import SettingToggle from '@/components/SettingToggle.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
+import welcomeSection from '@/components/welcomeSection.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -125,6 +134,7 @@ const { setIsPad, setIsMobile, setLocale } = defaultStore
 
 const { t } = useI18n()
 
+const start = ref(false)
 const showSettings = ref(false)
 const showPreview = ref(false)
 const previewImage = ref('')
