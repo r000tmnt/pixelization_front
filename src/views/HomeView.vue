@@ -28,77 +28,90 @@
             </div>
           </div>
 
-          <SettingToggle
-            v-if="!isPad"
-            @settings-changed="(v) => showSettings = v"
-            @show-help="(v) => showHelp = v"
-          />
-        </div>
-        <div
-          :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
-          @dragenter.prevent="isDragging = true"
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
-          @drop.prevent="handleDrop"
-        >
-          <button v-if="!hasArtwork" class="upload-zone" type="button" @click="openFilePicker">
+        <button v-if="hasArtwork" class="examples-trigger examples-trigger-compact" type="button" @click="showExamples = true">{{ $t('examples-open') }}</button>
+        <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" @show-help="(v) => showHelp = v" />
+      </div>
+      <div
+        :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
+        @dragenter.prevent="isDragging = true"
+        @dragover.prevent="isDragging = true"
+        @dragleave.prevent="isDragging = false"
+        @drop.prevent="handleDrop"
+      >
+        <div v-if="!hasArtwork" class="empty-state">
+          <button class="upload-zone" type="button" @click="openFilePicker">
             <span class="upload-icon" aria-hidden="true">+</span
             ><strong>{{ $t("upload-hint") }}</strong
             ><small>{{ $t("upload-type") }}</small>
             <small>{{ $t("upload-limit", {limit: settings.sizeLimitMB}) }}</small>
           </button>
-          <div v-else class="canvas-wrap">
-            <canvas ref="canvas" aria-label="Pixelized artwork" @click="openFilePicker"></canvas
-            ><button class="replace-overlay" type="button" @click="openFilePicker">
-              {{ $t("upload-change") }}
-            </button>
-          </div>
-          <div v-if="isProcessing" class="processing-overlay" role="status">
-            <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
-          </div>
-          <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
+          <button class="examples-trigger" type="button" @click="showExamples = true">{{ $t('examples-open') }}</button>
         </div>
-        <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
-          <button
-            ref="previewButton"
-            class="button secondary"
-            type="button"
-            :disabled="!hasArtwork || isProcessing"
-            @click="openPreview"
+        <div v-else class="canvas-wrap">
+          <canvas ref="canvas" aria-label="Pixelized artwork" :class="{ 'is-comparing': isComparing }" @click="!isComparing && openFilePicker()"></canvas>
+          <div
+            v-if="isComparing && hasConvertedArtwork && originalImageUrl"
+            class="canvas-comparison"
+            :style="{
+              left: `${comparisonGeometry.left}px`,
+              top: `${comparisonGeometry.top}px`,
+              width: `${comparisonGeometry.width}px`,
+              height: `${comparisonGeometry.height}px`,
+              '--split': `${comparisonSplit}%`,
+            }"
           >
-            {{ $t("preview-edit") }}
-          </button>
-          <button
-            class="button secondary"
-            type="button"
-            :disabled="!hasArtwork || isProcessing"
-            @click="downloadArtwork"
-          >
-            {{ $t("download") }}
+            <img class="comparison-before" :src="originalImageUrl" :alt="$t('examples-before')" />
+            <span class="comparison-label before-label">{{ $t('examples-before') }}</span>
+            <span class="comparison-label after-label">{{ $t('examples-after') }}</span>
+            <input
+              v-model.number="comparisonSplit"
+              class="comparison-slider"
+              type="range"
+              min="0"
+              max="100"
+              :aria-label="$t('compare-slider-label')"
+            />
+            <span class="comparison-divider" aria-hidden="true"></span>
+          </div>
+          <button v-if="!isComparing" class="replace-overlay" type="button" @click="openFilePicker">
+            {{ $t("upload-change") }}
           </button>
         </div>
-      </section>
-
-      <Transition name="fade">
-        <ImagePreviewDialog
-          v-if="showPreview && previewImage"
-          :src="previewImage"
-          :colors="paletteColors"
-          :selected-colors="selectedColors"
-          :can-undo="undoStack.length > 0 || customUndoStack.length > 0"
-          :can-redo="redoStack.length > 0 || customRedoStack.length > 0"
-          :is-processing="isProcessing"
-          @change-color="changePaletteColor"
-          @undo="undoPaletteColor"
-          @redo="redoPaletteColor"
-          @apply-custom="applyCustomPalette"
-          @save-artwork="saveEditedArtwork"
-          @close="closePreview"
-        />
-      </Transition>
-
-      <footerSection v-if="isPad" />
-    </main>
+        <div v-if="isProcessing" class="processing-overlay" role="status">
+          <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
+        </div>
+        <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
+      </div>
+      <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
+        <button
+          v-if="hasConvertedArtwork && !isProcessing"
+          class="button secondary"
+          type="button"
+          :aria-pressed="isComparing"
+          @click="toggleComparison"
+        >
+          {{ isComparing ? $t('compare-close') : $t('compare-open') }}
+        </button>
+        <button
+          ref="previewButton"
+          class="button secondary"
+          type="button"
+          :disabled="!hasArtwork || isProcessing"
+          @click="openPreview"
+        >
+          {{ $t("preview-edit") }}
+        </button>
+        <button
+          class="button secondary"
+          type="button"
+          :disabled="!hasArtwork || isProcessing"
+          @click="downloadArtwork"
+        >
+          {{ $t("download") }}
+        </button>
+      </div>
+    </section>
+   </main>
 
     <Transition name="fade">
       <SettingsDialog
@@ -109,6 +122,34 @@
     <Transition name="fade">
       <HelpDialog v-if="showHelp" @close="showHelp = false" />
     </Transition>
+
+    <Transition name="fade">
+      <ExamplesDialog
+        v-if="showExamples"
+        @close="showExamples = false"
+        @select-example="loadExample"
+      />
+    </Transition>
+
+    <Transition name="fade">
+      <ImagePreviewDialog
+        v-if="showPreview && previewImage"
+        :src="previewImage"
+        :colors="paletteColors"
+        :selected-colors="selectedColors"
+        :can-undo="undoStack.length > 0 || customUndoStack.length > 0"
+        :can-redo="redoStack.length > 0 || customRedoStack.length > 0"
+        :is-processing="isProcessing"
+        @change-color="changePaletteColor"
+        @undo="undoPaletteColor"
+        @redo="redoPaletteColor"
+        @apply-custom="applyCustomPalette"
+        @save-artwork="saveEditedArtwork"
+        @close="closePreview"
+      />
+    </Transition>
+
+    <FooterSection v-if="isPad" />
   </div>
 
 </template>
@@ -116,11 +157,12 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
-import footerSection from '@/components/footerSection.vue'
+import FooterSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import SettingToggle from '@/components/SettingToggle.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
 import HelpDialog from '@/components/HelpDialog.vue'
+import ExamplesDialog from '@/components/ExamplesDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -164,10 +206,16 @@ const maxPaletteHistory = 50
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
+const showExamples = ref(false)
 const sourceFile = ref<File | null>(null)
+const originalImageUrl = ref('')
+const isComparing = ref(false)
+const comparisonSplit = ref(50)
+const comparisonGeometry = ref({ left: 0, top: 0, width: 0, height: 0 })
 const isProcessing = ref(false)
 const isDragging = ref(false)
 const errorMessage = ref('')
+const hasConvertedArtwork = ref(false)
 // const imageDetails = ref('')
 const reprocessDebounceMs = 250
 const conversionRetryDelayMs = 750
@@ -183,6 +231,35 @@ const status = computed(() =>
         ? { type: 'ready', label: 'status-ready' }
         : { type: 'idle', label: 'status-wait' },
 )
+
+watch(sourceFile, (file) => {
+  if (originalImageUrl.value) URL.revokeObjectURL(originalImageUrl.value)
+  originalImageUrl.value = file ? URL.createObjectURL(file) : ''
+  isComparing.value = false
+  comparisonSplit.value = 50
+})
+
+const updateComparisonGeometry = () => {
+  const target = canvas.value
+  const container = target?.parentElement
+  if (!target || !container) return
+  const imageRect = target.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+  comparisonGeometry.value = {
+    left: imageRect.left - containerRect.left,
+    top: imageRect.top - containerRect.top,
+    width: imageRect.width,
+    height: imageRect.height,
+  }
+}
+
+const toggleComparison = async () => {
+  isComparing.value = !isComparing.value
+  if (isComparing.value) {
+    await nextTick()
+    updateComparisonGeometry()
+  }
+}
 
 const {
   selectedPalette,
@@ -228,6 +305,21 @@ const persistProject = async (original: File, convertedDataUrl: string, width: n
 
 const openFilePicker = () => {
   fileInput.value?.click()
+}
+
+const loadExample = async (example: { src: string; nameKey: string; palette: string }) => {
+  showExamples.value = false
+  settings.setPalette(example.palette)
+  try {
+    const response = await fetch(example.src)
+    if (!response.ok) throw new Error('Could not load example image')
+    const blob = await response.blob()
+    const filename = example.src.split('/').pop() ?? 'pixelization-example.jpg'
+    processFile(new File([blob], filename, { type: blob.type || 'image/jpeg' }))
+  } catch (error) {
+    console.warn('Could not load example image:', error)
+    errorMessage.value = t('error-failed')
+  }
 }
 
 const openPreview = () => {
@@ -505,6 +597,8 @@ const processFile = async(file: File, preserveOnError = false) => {
   // }
   clearTimeout(reprocessTimer)
   sourceFile.value = file
+  isComparing.value = false
+  hasConvertedArtwork.value = false
   const requestId = ++latestRequestId
   errorMessage.value = ''
   isProcessing.value = true
@@ -555,6 +649,7 @@ const processFile = async(file: File, preserveOnError = false) => {
 
     if (requestId !== latestRequestId) return
     await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
+    if (requestId === latestRequestId) hasConvertedArtwork.value = true
     await persistProject(file, result.data.data, width, height)
 
     processImagePalette(result.data)
@@ -564,6 +659,7 @@ const processFile = async(file: File, preserveOnError = false) => {
   } catch (error) {
     if (requestId !== latestRequestId) return
     console.log(error)
+    hasConvertedArtwork.value = false
     if (!preserveOnError) sourceFile.value = null
     paletteIndexMap.value = null
     paletteBaseColors.value = []
@@ -659,6 +755,7 @@ const downloadArtwork = async() => {
 const onResize = () => {
   setIsPad(window.innerWidth <= 899)
   setIsMobile(window.innerWidth <= 620)
+  if (isComparing.value) void nextTick().then(updateComparisonGeometry)
 }
 
 watch(rememberLastProject, (enabled) => {
@@ -700,6 +797,7 @@ onMounted(async () => {
         sourceFile.value = restoredFile
         try {
           await drawArtwork(convertedUrl, project.width, project.height)
+          hasConvertedArtwork.value = true
         } finally {
           URL.revokeObjectURL(convertedUrl)
         }
@@ -720,6 +818,7 @@ onMounted(async () => {
 onUnmounted(() => {
   clearTimeout(reprocessTimer)
   latestRequestId++
+  if (originalImageUrl.value) URL.revokeObjectURL(originalImageUrl.value)
   removeEventListener('resize', onResize)
   removeEventListener('keydown', onPaletteHistoryKeydown)
 })
@@ -799,6 +898,26 @@ onUnmounted(() => {
   color: var(--px-text);
   cursor: pointer;
 }
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: inherit;
+  padding: 20px;
+}
+.examples-trigger {
+  padding: 8px 12px;
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-sm);
+  background: var(--px-surface);
+  color: var(--px-azure);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.examples-trigger:hover { border-color: var(--px-azure); }
+.examples-trigger-compact { margin-left: auto; }
 .upload-zone strong {
   /* font-family: var(--font-display); */
   font-size: clamp(1rem, 2vw, 1.25rem);
@@ -835,6 +954,70 @@ onUnmounted(() => {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   cursor: pointer;
+}
+.canvas-wrap canvas.is-comparing { cursor: default; }
+.canvas-comparison {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+.comparison-before {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  clip-path: inset(0 calc(100% - var(--split)) 0 0);
+}
+.comparison-label {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 72%);
+  color: white;
+  font-size: 0.75rem;
+}
+.before-label { left: 12px; }
+.after-label { right: 12px; }
+.comparison-slider {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  pointer-events: auto;
+  cursor: ew-resize;
+}
+.comparison-slider::-webkit-slider-thumb {
+  width: 4px;
+  height: 100%;
+  appearance: none;
+  background: var(--px-azure);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 35%);
+}
+.comparison-slider::-moz-range-thumb {
+  width: 4px;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: var(--px-azure);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 35%);
+}
+.comparison-divider {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--px-azure);
+  pointer-events: none;
 }
 .replace-overlay {
   position: absolute;
@@ -873,6 +1056,7 @@ button:focus-visible {
 }
 .actions{
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
 }

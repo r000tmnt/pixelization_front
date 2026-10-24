@@ -11,7 +11,7 @@ function getOption(name, fallback) {
 }
 
 const apiBase = (getOption('--api', process.env.VITE_API || 'http://localhost:3030')).replace(/\/$/, '')
-const imagePath = path.resolve(projectDir, getOption('--image', 'public/test/test.jpg'))
+const imagePath = path.resolve(projectDir, getOption('--image', 'public/test/test_01.jpg'))
 const runs = Number.parseInt(getOption('--runs', '96'), 10)
 
 if (!Number.isInteger(runs) || runs < 1) {
