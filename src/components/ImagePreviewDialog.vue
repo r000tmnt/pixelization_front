@@ -1,14 +1,22 @@
 <template>
-  <div class="preview-backdrop" @click.self="finishEditing">
+  <div class="preview-backdrop" :class="{ 'is-expanded': isExpanded }" @click.self="finishEditing">
     <section
       ref="dialog"
       class="preview-dialog custom-dialog"
+      :style="dialogStyle"
       role="dialog"
       aria-modal="true"
       aria-labelledby="preview-title"
       tabindex="-1"
     >
-      <header class="preview-header">
+      <header
+        class="preview-header"
+        :class="{ 'is-draggable': isDesktop && !isExpanded }"
+        @pointerdown="startDialogDrag"
+        @pointermove="moveDialogDrag"
+        @pointerup="stopDialogDrag"
+        @pointercancel="stopDialogDrag"
+      >
         <div class="preview-title-group">
           <h2 id="preview-title">{{ $t('preview-edit') }}</h2>
 
@@ -21,6 +29,13 @@
             @click="finishEditing">×</button>
         </div>
         <div class="preview-controls">
+          <button
+            v-if="isDesktop"
+            type="button"
+            :aria-label="$t(isExpanded ? 'preview-restore' : 'preview-expand')"
+            :title="$t(isExpanded ? 'preview-restore' : 'preview-expand')"
+            @click="isExpanded = !isExpanded"
+          >{{ isExpanded ? '⧉' : '⛶' }}</button>
           <button
             type="button"
             class="shortcut-help-button"
@@ -216,7 +231,7 @@ const emit = defineEmits<{
 }>()
 
 const defaultStore = useDefaultStore()
-const { isMobile } = storeToRefs(defaultStore)
+const { isMobile, isPad } = storeToRefs(defaultStore)
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
@@ -226,6 +241,23 @@ const viewport = ref<HTMLElement | null>(null)
 const editCanvas = ref<HTMLCanvasElement | null>(null)
 const selectionCanvas = ref<HTMLCanvasElement | null>(null)
 const zoom = ref(1)
+const isExpanded = ref(false)
+const dialogOffset = ref({ x: 0, y: 0 })
+const isDesktop = computed(() => !isMobile.value && !isPad.value)
+let dialogDrag: {
+  pointerId: number
+  startX: number
+  startY: number
+  startOffsetX: number
+  startOffsetY: number
+  baseLeft: number
+  baseTop: number
+  width: number
+  height: number
+} | null = null
+const dialogStyle = computed(() => isDesktop.value && !isExpanded.value && (dialogOffset.value.x || dialogOffset.value.y)
+  ? { transform: `translate(${dialogOffset.value.x}px, ${dialogOffset.value.y}px)` }
+  : undefined)
 const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
@@ -568,6 +600,48 @@ const stopPan = (event: PointerEvent) => {
   panPointerId = null
 }
 
+const startDialogDrag = (event: PointerEvent) => {
+  if (!isDesktop.value || isExpanded.value || event.button !== 0) return
+  const target = event.target
+  if (target instanceof Element && target.closest('button, input, select, textarea, a')) return
+  const element = dialog.value
+  const header = event.currentTarget
+  if (!element || !(header instanceof HTMLElement)) return
+  const rect = element.getBoundingClientRect()
+  dialogDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startOffsetX: dialogOffset.value.x,
+    startOffsetY: dialogOffset.value.y,
+    baseLeft: rect.left - dialogOffset.value.x,
+    baseTop: rect.top - dialogOffset.value.y,
+    width: rect.width,
+    height: rect.height,
+  }
+  header.setPointerCapture(event.pointerId)
+  event.preventDefault()
+}
+
+const moveDialogDrag = (event: PointerEvent) => {
+  if (!dialogDrag || event.pointerId !== dialogDrag.pointerId) return
+  const maxX = Math.max(0, window.innerWidth - dialogDrag.width)
+  const maxY = Math.max(0, window.innerHeight - dialogDrag.height)
+  const nextX = dialogDrag.startOffsetX + event.clientX - dialogDrag.startX
+  const nextY = dialogDrag.startOffsetY + event.clientY - dialogDrag.startY
+  dialogOffset.value = {
+    x: Math.min(maxX - dialogDrag.baseLeft, Math.max(-dialogDrag.baseLeft, nextX)),
+    y: Math.min(maxY - dialogDrag.baseTop, Math.max(-dialogDrag.baseTop, nextY)),
+  }
+}
+
+const stopDialogDrag = (event: PointerEvent) => {
+  if (!dialogDrag || event.pointerId !== dialogDrag.pointerId) return
+  const header = event.currentTarget
+  if (header instanceof HTMLElement && header.hasPointerCapture(event.pointerId)) header.releasePointerCapture(event.pointerId)
+  dialogDrag = null
+}
+
 const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     if (showShortcuts.value) showShortcuts.value = false
@@ -611,6 +685,11 @@ onMounted(() => {
 })
 
 watch(() => props.src, () => { imageLoadedSrc = ''; void loadEditorImage() })
+watch(isDesktop, (desktop) => {
+  if (desktop) return
+  isExpanded.value = false
+  dialogDrag = null
+})
 watch(tool, drawSelection)
 watch(() => props.selectedColors, (colors) => {
   customDraft.value = colors.length ? [...colors] : ['#000000', '#ffffff']
@@ -651,6 +730,8 @@ onUnmounted(() => {
   gap: 16px;
   padding: 0 0 12px;
 }
+.preview-header.is-draggable { cursor: grab; touch-action: none; user-select: none; }
+.preview-header.is-draggable:active { cursor: grabbing; }
 .preview-title-group { display: flex; align-items: center; gap: 12px; }
 .preview-header h2 { margin: 0; font-size: 1.1rem; }
 button {
@@ -672,6 +753,8 @@ button:disabled { opacity: 0.45; cursor: default; }
   text-align: center;
 }
 .preview-controls .close-button { font-size: 1.4rem; line-height: 1; }
+.preview-backdrop.is-expanded { padding: 0; }
+.preview-backdrop.is-expanded .preview-dialog { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; border-radius: 0; transform: none; }
 .shortcut-popover {
   position: absolute;
   z-index: 10;
