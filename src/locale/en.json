@@ -54,6 +54,8 @@
     "zoom-out": "Zoom out",
     "fit": "Fit",
     "preview-hint": "Use the mouse wheel to zoom and drag to pan.",
+    "preview-expand": "Expand preview to full screen",
+    "preview-restore": "Restore preview size",
     "preview-shortcuts-open": "Show keyboard shortcuts and controls",
     "preview-shortcuts-title": "Shortcuts & controls",
     "preview-shortcuts-keyboard": "Keyboard",

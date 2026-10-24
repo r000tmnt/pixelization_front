@@ -54,6 +54,8 @@
   "zoom-out": "縮小",
   "fit": "全体表示",
   "preview-hint": "マウスホイールで拡大・縮小し、ドラッグして移動できます。",
+  "preview-expand": "プレビューを全画面表示",
+  "preview-restore": "プレビューのサイズを元に戻す",
   "preview-shortcuts-open": "キーボードショートカットと操作方法を表示",
   "preview-shortcuts-title": "ショートカットと操作方法",
   "preview-shortcuts-keyboard": "キーボード",

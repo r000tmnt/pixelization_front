@@ -54,6 +54,8 @@
     "zoom-out": "縮小",
     "fit": "符合視窗",
     "preview-hint": "使用滑鼠滾輪縮放，拖曳以移動畫面。",
+    "preview-expand": "將預覽展開為全螢幕",
+    "preview-restore": "還原預覽視窗大小",
     "preview-shortcuts-open": "顯示鍵盤快捷鍵與操作方式",
     "preview-shortcuts-title": "快捷鍵與操作方式",
     "preview-shortcuts-keyboard": "鍵盤",
