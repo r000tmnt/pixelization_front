@@ -89,10 +89,10 @@
               </label>
               <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
               <footer class="palette-actions">
-                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">
+                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoHistory">
                   <UndoIcon />
                 </button>
-                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">
+                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoHistory">
                   <RedoIcon />
                 </button>
                 <button type="button" :aria-label="$t('deselect')" :title="$t('deselect')" :disabled="!selection" @click="clearSelection">
@@ -115,9 +115,13 @@
                 </label>
               </div>
               <footer class="palette-actions">
+                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoHistory">
+                  <UndoIcon />
+                </button>
+                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoHistory">
+                  <RedoIcon />
+                </button>
                 <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
-                <!-- <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
-                <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button> -->
               </footer>
             </template>
           </div>
@@ -327,6 +331,16 @@ const redoEdit = () => {
   restoreEdit(next, redoSelections.value.pop() ?? null)
 }
 
+const undoHistory = () => {
+  if (undoImages.value.length) undoEdit()
+  else if (props.canUndo) emit('undo')
+}
+
+const redoHistory = () => {
+  if (redoImages.value.length) redoEdit()
+  else if (props.canRedo) emit('redo')
+}
+
 const imagePoint = (event: PointerEvent) => {
   const area = viewport.value
   const canvas = editCanvas.value
@@ -523,19 +537,21 @@ const stopPan = (event: PointerEvent) => {
 const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') emit('close')
   if (!(event.ctrlKey || event.metaKey)) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
   const key = event.key.toLowerCase()
-  if (key === 'z' && event.shiftKey && redoImages.value.length) {
+  if (key === 'z' && event.shiftKey && (redoImages.value.length || props.canRedo)) {
     event.preventDefault()
     event.stopPropagation()
-    redoEdit()
-  } else if (key === 'y' && redoImages.value.length) {
+    redoHistory()
+  } else if (key === 'y' && (redoImages.value.length || props.canRedo)) {
     event.preventDefault()
     event.stopPropagation()
-    redoEdit()
-  } else if (key === 'z' && undoImages.value.length) {
+    redoHistory()
+  } else if (key === 'z' && (undoImages.value.length || props.canUndo)) {
     event.preventDefault()
     event.stopPropagation()
-    undoEdit()
+    undoHistory()
   }
 }
 

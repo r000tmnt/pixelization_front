@@ -481,23 +481,6 @@ const saveEditedArtwork = async (dataUrl: string) => {
   persistEditedArtwork()
 }
 
-const onPaletteHistoryKeydown = (event: KeyboardEvent) => {
-  if (!showPreview.value || !(event.ctrlKey || event.metaKey)) return
-  const target = event.target
-  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
-  const key = event.key.toLowerCase()
-  if (key === 'z' && event.shiftKey) {
-    event.preventDefault()
-    redoPaletteColor()
-  } else if (key === 'z') {
-    event.preventDefault()
-    undoPaletteColor()
-  } else if (key === 'y') {
-    event.preventDefault()
-    redoPaletteColor()
-  }
-}
-
 const closePreview = () => {
   showPreview.value = false
 }
@@ -765,7 +748,6 @@ watch(rememberLastProject, (enabled) => {
 onMounted(async () => {
   onResize()
   addEventListener('resize', onResize)
-  addEventListener('keydown', onPaletteHistoryKeydown)
 
   const locale = localStorage.getItem('locale')
 
@@ -820,7 +802,6 @@ onUnmounted(() => {
   latestRequestId++
   if (originalImageUrl.value) URL.revokeObjectURL(originalImageUrl.value)
   removeEventListener('resize', onResize)
-  removeEventListener('keydown', onPaletteHistoryKeydown)
 })
 </script>
 
