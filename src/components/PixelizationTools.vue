@@ -9,6 +9,7 @@
             v-if="isPad"
             style="margin-left: auto"
             @settings-changed="(v) => emit('show-settings', v)"
+            @show-help="(v) => emit('show-help', v)"
           />
        </div>
 
@@ -168,7 +169,8 @@ const emit = defineEmits<{
   'export-image': [];
   'settings-changed': [],
   'settings-changed-debounced': [],
-  'show-settings': [value: boolean]
+  'show-settings': [value: boolean],
+  'show-help': [value: boolean]
 }>()
 
 const settings = usePixelizationStore()

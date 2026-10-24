@@ -9,6 +9,7 @@
         @settings-changed="reprocessArtwork"
         @settings-changed-debounced="scheduleReprocessArtwork"
         @show-settings="(v) => showSettings = v"
+        @show-help="(v) => showHelp = v"
       />
       <section class="artwork-zone" aria-labelledby="stage-title">
         <input
@@ -27,12 +28,11 @@
             </div>
           </div>
 
-          <div class="help-settings">
-            <button class="help-button" type="button" :aria-label="$t('help-open')" :title="$t('help-open')" @click="showHelp = true">?</button>
-
-            <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
-          </div>
-
+          <SettingToggle
+            v-if="!isPad"
+            @settings-changed="(v) => showSettings = v"
+            @show-help="(v) => showHelp = v"
+          />
         </div>
         <div
           :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
@@ -889,25 +889,7 @@ button:focus-visible {
   align-items: center;
   gap: 16px;
 }
-.help-settings{
-  display: flex;
-  gap: 12px;
-}
-.help-button {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid var(--px-grid);
-  border-radius: 8px;
-  background: var(--px-surface);
-  color: var(--px-text);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  text-align: center;
-}
-.help-button:hover { border-color: var(--px-azure); color: var(--px-azure); }
+
 .status-dot {
   width: 7px;
   height: 7px;
