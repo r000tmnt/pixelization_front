@@ -26,12 +26,12 @@
           <img src="/scrn_shot/aside.png" :alt="$t('help-size-palette-alt')" />
         </div>
 
-        <div class="steps reverse">
-          <img src="/scrn_shot/upload.png" :alt="$t('help-upload-alt')" />
+        <div class="steps">
           <div class="step-copy">
             <h4>{{ $t('help-step-2-title') }}</h4>
             <p>{{ $t('help-step-2-description') }}</p>
           </div>
+          <img src="/scrn_shot/upload.png" :alt="$t('help-upload-alt')" />
         </div>
 
         <div class="steps">
@@ -118,7 +118,7 @@ const emit = defineEmits<{ close: [] }>()
   padding: 18px 0;
   border-top: 1px solid var(--px-grid);
 }
-.steps.reverse img { order: -1; }
+/* .steps.reverse img { order: -1; } */
 .steps img { display: block; width: 100%; max-height: 220px; object-fit: contain; border: 1px solid var(--px-grid); border-radius: var(--radius-sm); }
 .step-copy h4 { margin: 0 0 7px; font-size: 0.98rem; }
 .step-copy p { margin: 0; color: var(--px-text-muted); font-size: 0.9rem; line-height: 1.55; }
