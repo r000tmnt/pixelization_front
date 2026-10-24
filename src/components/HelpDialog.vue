@@ -51,7 +51,7 @@
       </div>
 
       <footer class="help-footer">
-        <button class="button primary" type="button" @click="emit('close')">{{ $t('help-got-it') }}</button>
+        <button class="button primary" type="button" @click="emit('close')">OK</button>
       </footer>
     </section>
   </div>
