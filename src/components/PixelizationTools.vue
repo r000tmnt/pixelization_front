@@ -165,7 +165,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'choose-image': [];
   'export-image': [];
   'settings-changed': [],
   'settings-changed-debounced': [],
