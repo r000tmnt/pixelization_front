@@ -44,13 +44,13 @@ const examples = [
 
 <style scoped>
 .examples-backdrop { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(0 0 0 / 72%); }
-.examples-dialog { display: flex; flex-direction: column; width: min(100%, 1120px); max-height: min(90vh, 960px); overflow: hidden; }
+.examples-dialog { display: flex; flex-direction: column; width: min(100%, 1120px); max-height: min(90vh, 960px); min-height: 0; overflow: hidden; }
 .examples-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px 28px 20px; border-bottom: 1px solid var(--px-grid); }
 .eyebrow { margin: 0 0 6px; color: var(--px-azure); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; }
 .examples-header h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.8rem); }
 .examples-intro { margin: 7px 0 0; color: var(--px-text-muted); line-height: 1.5; }
 .close-button { flex: 0 0 auto; width: 36px; height: 36px; border: 1px solid var(--px-grid); border-radius: var(--radius-sm); background: transparent; color: var(--px-text); font: inherit; font-size: 1.5rem; line-height: 1; cursor: pointer; }
-.examples-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; overflow-y: auto; padding: 22px 28px 28px; }
+.examples-grid { display: grid; flex: 1 1 auto; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; gap: 18px; min-height: 0; overflow-y: auto; padding: 22px 28px 28px; }
 .example-card { min-width: 0; overflow: hidden; border: 1px solid var(--px-grid); border-radius: var(--radius-sm); background: var(--px-surface-raised); }
 .example-image { display: grid; aspect-ratio: 4 / 3; overflow: hidden; place-items: center; background: var(--px-ink); }
 .example-image > img { display: block; width: 100%; height: 100%; object-fit: contain; }
