@@ -1,6 +1,7 @@
 <template>
   <footer>
     <div>©2026 ParkCorner All Rights Reserved.</div>
+    <a href="mailto:rick.t.ryahoocomtw653@gmail.com"><span>&#9993;</span></a>
   </footer>
 </template>
 
