@@ -1,14 +1,22 @@
 <template>
-  <div class="preview-backdrop" @click.self="finishEditing">
+  <div class="preview-backdrop" :class="{ 'is-expanded': isExpanded }" @click.self="finishEditing">
     <section
       ref="dialog"
       class="preview-dialog custom-dialog"
+      :style="dialogStyle"
       role="dialog"
       aria-modal="true"
       aria-labelledby="preview-title"
       tabindex="-1"
     >
-      <header class="preview-header">
+      <header
+        class="preview-header"
+        :class="{ 'is-draggable': isDesktop && !isExpanded }"
+        @pointerdown="startDialogDrag"
+        @pointermove="moveDialogDrag"
+        @pointerup="stopDialogDrag"
+        @pointercancel="stopDialogDrag"
+      >
         <div class="preview-title-group">
           <h2 id="preview-title">{{ $t('preview-edit') }}</h2>
 
@@ -21,6 +29,22 @@
             @click="finishEditing">×</button>
         </div>
         <div class="preview-controls">
+          <button
+            v-if="isDesktop"
+            type="button"
+            :aria-label="$t(isExpanded ? 'preview-restore' : 'preview-expand')"
+            :title="$t(isExpanded ? 'preview-restore' : 'preview-expand')"
+            @click="isExpanded = !isExpanded"
+          >{{ isExpanded ? '⧉' : '⛶' }}</button>
+          <button
+            type="button"
+            class="shortcut-help-button"
+            :aria-label="$t('preview-shortcuts-open')"
+            :aria-expanded="showShortcuts"
+            aria-controls="preview-shortcuts"
+            :title="$t('preview-shortcuts-open')"
+            @click="showShortcuts = !showShortcuts"
+          >?</button>
           <button type="button" :aria-label="$t('zoom-out')" :disabled="zoom <= MIN_ZOOM" @click="zoomAtCenter(zoom - ZOOM_STEP)">−</button>
           <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
           <button type="button" :aria-label="$t('zoom-in')" :disabled="zoom >= MAX_ZOOM" @click="zoomAtCenter(zoom + ZOOM_STEP)">+</button>
@@ -34,6 +58,31 @@
             @click="finishEditing">×</button>
         </div>
       </header>
+      <section
+        v-show="showShortcuts"
+        id="preview-shortcuts"
+        class="shortcut-popover"
+        role="region"
+        aria-labelledby="preview-shortcuts-title"
+      >
+        <div class="shortcut-popover-header">
+          <h3 id="preview-shortcuts-title">{{ $t('preview-shortcuts-title') }}</h3>
+          <button type="button" class="shortcut-popover-close" :aria-label="$t('close')" @click="showShortcuts = false">×</button>
+        </div>
+        <h4>{{ $t('preview-shortcuts-keyboard') }}</h4>
+        <dl>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></dt><dd>{{ $t('undo') }}</dd></div>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></dt><dd>{{ $t('redo') }}</dd></div>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Y</kbd></dt><dd>{{ $t('redo') }}</dd></div>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>D</kbd></dt><dd>{{ $t('deselect') }}</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>{{ $t('preview-shortcuts-close') }}</dd></div>
+        </dl>
+        <h4>{{ $t('preview-shortcuts-pointer') }}</h4>
+        <dl>
+          <div><dt>{{ $t('preview-shortcuts-wheel') }}</dt><dd>{{ $t('preview-shortcuts-zoom') }}</dd></div>
+          <div><dt>{{ $t('preview-shortcuts-drag') }}</dt><dd>{{ $t('preview-shortcuts-pan') }}</dd></div>
+        </dl>
+      </section>
       <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
         <aside
           id="palette-drawer"
@@ -89,10 +138,10 @@
               </label>
               <!-- <p class="selection-status" aria-live="polite">{{ selection ? $t('selection-ready') : $t('selection-instruction') }}</p> -->
               <footer class="palette-actions">
-                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoImages.length ? undoEdit() : emit('undo')">
+                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoHistory">
                   <UndoIcon />
                 </button>
-                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoImages.length ? redoEdit() : emit('redo')">
+                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoHistory">
                   <RedoIcon />
                 </button>
                 <button type="button" :aria-label="$t('deselect')" :title="$t('deselect')" :disabled="!selection" @click="clearSelection">
@@ -115,9 +164,13 @@
                 </label>
               </div>
               <footer class="palette-actions">
+                <button type="button" :aria-label="$t('undo')" :title="$t('undo')" :disabled="undoImages.length === 0 && !canUndo" @click="undoHistory">
+                  <UndoIcon />
+                </button>
+                <button type="button" :aria-label="$t('redo')" :title="$t('redo')" :disabled="redoImages.length === 0 && !canRedo" @click="redoHistory">
+                  <RedoIcon />
+                </button>
                 <button type="button" class="apply-custom" @click="emit('apply-custom', [...customDraft])">{{ $t('label-custom-apply') }}</button>
-                <!-- <button type="button" :disabled="!canUndo" @click="emit('undo')">{{ $t('undo') }}</button>
-                <button type="button" :disabled="!canRedo" @click="emit('redo')">{{ $t('redo') }}</button> -->
               </footer>
             </template>
           </div>
@@ -142,7 +195,6 @@
           </div>
         </div>
       </div>
-      <p v-if="!isMobile && !isPad" class="preview-hint">{{ $t('preview-hint') }}</p>
     </section>
   </div>
 </template>
@@ -189,10 +241,28 @@ const viewport = ref<HTMLElement | null>(null)
 const editCanvas = ref<HTMLCanvasElement | null>(null)
 const selectionCanvas = ref<HTMLCanvasElement | null>(null)
 const zoom = ref(1)
+const isExpanded = ref(false)
+const dialogOffset = ref({ x: 0, y: 0 })
+const isDesktop = computed(() => !isMobile.value && !isPad.value)
+let dialogDrag: {
+  pointerId: number
+  startX: number
+  startY: number
+  startOffsetX: number
+  startOffsetY: number
+  baseLeft: number
+  baseTop: number
+  width: number
+  height: number
+} | null = null
+const dialogStyle = computed(() => isDesktop.value && !isExpanded.value && (dialogOffset.value.x || dialogOffset.value.y)
+  ? { transform: `translate(${dialogOffset.value.x}px, ${dialogOffset.value.y}px)` }
+  : undefined)
 const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
+const showShortcuts = ref(false)
 const paletteMode = ref<'image' | 'custom'>('image')
 const tool = ref<'wand' | 'brush' | 'eyedropper' | 'hand'>('hand')
 const tolerance = ref(24)
@@ -325,6 +395,16 @@ const redoEdit = () => {
   undoImages.value.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
   undoSelections.value.push(selection.value ? new Uint8Array(selection.value) : null)
   restoreEdit(next, redoSelections.value.pop() ?? null)
+}
+
+const undoHistory = () => {
+  if (undoImages.value.length) undoEdit()
+  else if (props.canUndo) emit('undo')
+}
+
+const redoHistory = () => {
+  if (redoImages.value.length) redoEdit()
+  else if (props.canRedo) emit('redo')
 }
 
 const imagePoint = (event: PointerEvent) => {
@@ -520,22 +600,80 @@ const stopPan = (event: PointerEvent) => {
   panPointerId = null
 }
 
+const startDialogDrag = (event: PointerEvent) => {
+  if (!isDesktop.value || isExpanded.value || event.button !== 0) return
+  const target = event.target
+  if (target instanceof Element && target.closest('button, input, select, textarea, a')) return
+  const element = dialog.value
+  const header = event.currentTarget
+  if (!element || !(header instanceof HTMLElement)) return
+  const rect = element.getBoundingClientRect()
+  dialogDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startOffsetX: dialogOffset.value.x,
+    startOffsetY: dialogOffset.value.y,
+    baseLeft: rect.left - dialogOffset.value.x,
+    baseTop: rect.top - dialogOffset.value.y,
+    width: rect.width,
+    height: rect.height,
+  }
+  header.setPointerCapture(event.pointerId)
+  event.preventDefault()
+}
+
+const moveDialogDrag = (event: PointerEvent) => {
+  if (!dialogDrag || event.pointerId !== dialogDrag.pointerId) return
+  const maxX = Math.max(0, window.innerWidth - dialogDrag.width)
+  const maxY = Math.max(0, window.innerHeight - dialogDrag.height)
+  const nextX = dialogDrag.startOffsetX + event.clientX - dialogDrag.startX
+  const nextY = dialogDrag.startOffsetY + event.clientY - dialogDrag.startY
+  dialogOffset.value = {
+    x: Math.min(maxX - dialogDrag.baseLeft, Math.max(-dialogDrag.baseLeft, nextX)),
+    y: Math.min(maxY - dialogDrag.baseTop, Math.max(-dialogDrag.baseTop, nextY)),
+  }
+}
+
+const stopDialogDrag = (event: PointerEvent) => {
+  if (!dialogDrag || event.pointerId !== dialogDrag.pointerId) return
+  const header = event.currentTarget
+  if (header instanceof HTMLElement && header.hasPointerCapture(event.pointerId)) header.releasePointerCapture(event.pointerId)
+  dialogDrag = null
+}
+
 const onKeyDown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') emit('close')
+  if (event.key === 'Escape') {
+    if (showShortcuts.value) showShortcuts.value = false
+    else emit('close')
+    return
+  }
   if (!(event.ctrlKey || event.metaKey)) return
+  const target = event.target
+  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
   const key = event.key.toLowerCase()
-  if (key === 'z' && event.shiftKey && redoImages.value.length) {
+
+  if (key === 'z' && event.shiftKey && (redoImages.value.length || props.canRedo)) {
     event.preventDefault()
     event.stopPropagation()
-    redoEdit()
-  } else if (key === 'y' && redoImages.value.length) {
+    redoHistory()
+  }
+
+  if (key === 'y' && (redoImages.value.length || props.canRedo)) {
     event.preventDefault()
     event.stopPropagation()
-    redoEdit()
-  } else if (key === 'z' && undoImages.value.length) {
+    redoHistory()
+  }
+
+  if (key === 'z' && (undoImages.value.length || props.canUndo)) {
     event.preventDefault()
     event.stopPropagation()
-    undoEdit()
+    undoHistory()
+  }
+
+  if (key === 'd' && (undoImages.value.length || props.canUndo)) {
+    event.preventDefault()
+    if (selection.value !== null) clearSelection()
   }
 }
 
@@ -547,6 +685,11 @@ onMounted(() => {
 })
 
 watch(() => props.src, () => { imageLoadedSrc = ''; void loadEditorImage() })
+watch(isDesktop, (desktop) => {
+  if (desktop) return
+  isExpanded.value = false
+  dialogDrag = null
+})
 watch(tool, drawSelection)
 watch(() => props.selectedColors, (colors) => {
   customDraft.value = colors.length ? [...colors] : ['#000000', '#ffffff']
@@ -568,6 +711,7 @@ onUnmounted(() => {
   background: color-mix(in srgb, var(--px-ink) 82%, transparent);
 }
 .preview-dialog {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(100%, 1400px);
@@ -586,6 +730,8 @@ onUnmounted(() => {
   gap: 16px;
   padding: 0 0 12px;
 }
+.preview-header.is-draggable { cursor: grab; touch-action: none; user-select: none; }
+.preview-header.is-draggable:active { cursor: grabbing; }
 .preview-title-group { display: flex; align-items: center; gap: 12px; }
 .preview-header h2 { margin: 0; font-size: 1.1rem; }
 button {
@@ -607,6 +753,31 @@ button:disabled { opacity: 0.45; cursor: default; }
   text-align: center;
 }
 .preview-controls .close-button { font-size: 1.4rem; line-height: 1; }
+.preview-backdrop.is-expanded { padding: 0; }
+.preview-backdrop.is-expanded .preview-dialog { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; border-radius: 0; transform: none; }
+.shortcut-popover {
+  position: absolute;
+  z-index: 10;
+  top: 58px;
+  right: 14px;
+  width: min(360px, calc(100vw - 48px));
+  padding: 14px;
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-sm);
+  background: var(--px-surface-raised);
+  color: var(--px-text);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 35%);
+}
+.shortcut-popover-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shortcut-popover h3 { margin: 0; font-size: 1rem; }
+.shortcut-popover h4 { margin: 14px 0 6px; color: var(--px-text-muted); font-size: 0.76rem; text-transform: uppercase; }
+.shortcut-popover dl { display: grid; gap: 6px; margin: 0; }
+.shortcut-popover dl > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.8rem; }
+.shortcut-popover dt { display: flex; align-items: center; gap: 3px; }
+.shortcut-popover dd { margin: 0; color: var(--px-text-muted); text-align: right; }
+.shortcut-popover kbd { padding: 2px 5px; border: 1px solid var(--px-grid); border-radius: 3px; background: var(--px-surface); font: 0.75rem var(--font-mono); }
+.shortcut-popover-close { min-width: 30px; width: 30px; height: 30px; padding: 0; font-size: 1.15rem; }
+.shortcut-help-button { font-weight: 700; }
 .palette-toggle { display: none; }
 .preview-workspace {
   position: relative;

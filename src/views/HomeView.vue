@@ -1,82 +1,54 @@
 <template>
-  <main class="workspace-shell">
-    <PixelizationTools
-      :has-artwork="hasArtwork"
-      :is-processing="isProcessing"
-      @choose-image="openFilePicker"
-      @export-image="downloadArtwork"
-      @settings-changed="reprocessArtwork"
-      @settings-changed-debounced="scheduleReprocessArtwork"
-      @show-settings="(v) => showSettings = v"
-    />
-    <section class="artwork-zone" aria-labelledby="stage-title">
-      <input
-        ref="fileInput"
-        class="visually-hidden"
-        type="file"
-        accept="image/*"
-        aria-label="Choose an image to pixelize"
-        @change="handleFileInput"
+  <div>
+    <main class="workspace-shell">
+      <PixelizationTools
+        :has-artwork="hasArtwork"
+        :is-processing="isProcessing"
+        @export-image="downloadArtwork"
+        @settings-changed="reprocessArtwork"
+        @settings-changed-debounced="scheduleReprocessArtwork"
+        @show-settings="(v) => showSettings = v"
+        @show-help="(v) => showHelp = v"
       />
-      <div class="stage-meta">
-        <div class="stage-status">
-          <div class="status-row" aria-live="polite">
-            <span :class="['status-dot', status.type]" aria-hidden="true"></span
-            ><span>{{ $t(status.label) }}</span>
-          </div>
-        </div>
-
-        <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
-      </div>
-      <div
-        :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
-        @dragenter.prevent="isDragging = true"
-        @dragover.prevent="isDragging = true"
-        @dragleave.prevent="isDragging = false"
-        @drop.prevent="handleDrop"
-      >
-        <button v-if="!hasArtwork" class="upload-zone" type="button" @click="openFilePicker">
-          <span class="upload-icon" aria-hidden="true">+</span
-          ><strong>{{ $t("upload-hint") }}</strong
-          ><small>{{ $t("upload-type") }}</small>
-          <small>{{ $t("upload-limit", {limit: settings.sizeLimitMB}) }}</small>
-        </button>
-        <div v-else class="canvas-wrap">
-          <canvas ref="canvas" aria-label="Pixelized artwork" @click="openFilePicker"></canvas
-          ><button class="replace-overlay" type="button" @click="openFilePicker">
-            {{ $t("upload-change") }}
-          </button>
-        </div>
-        <div v-if="isProcessing" class="processing-overlay" role="status">
-          <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
-        </div>
-        <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
-      </div>
-      <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
-        <button
-          ref="previewButton"
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="openPreview"
-        >
-          {{ $t("preview-edit") }}
-        </button>
-        <button
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="downloadArtwork"
-        >
-          {{ $t("download") }}
-        </button>
-      </div>
-    </section>
+      <ArtworkZone
+        ref="artworkZone"
+        :has-artwork="hasArtwork"
+        :is-pad="isPad"
+        :is-processing="isProcessing"
+        :has-converted-artwork="hasConvertedArtwork"
+        :is-comparing="isComparing"
+        :comparison-split="comparisonSplit"
+        :comparison-geometry="comparisonGeometry"
+        :original-image-url="originalImageUrl"
+        :error-message="errorMessage"
+        :size-limit-m-b="settings.sizeLimitMB"
+        :status="status"
+        @file-selected="handleSelectedFile"
+        @show-examples="showExamples = true"
+        @show-settings="showSettings = $event"
+        @show-help="showHelp = $event"
+        @toggle-comparison="toggleComparison"
+        @update:comparison-split="comparisonSplit = $event"
+        @preview="openPreview"
+        @download="downloadArtwork"
+      />
+   </main>
 
     <Transition name="fade">
       <SettingsDialog
         v-if="showSettings"
         @close="showSettings = false"
+      />
+    </Transition>
+    <Transition name="fade">
+      <HelpDialog v-if="showHelp" @close="showHelp = false" />
+    </Transition>
+
+    <Transition name="fade">
+      <ExamplesDialog
+        v-if="showExamples"
+        @close="showExamples = false"
+        @select-example="loadExample"
       />
     </Transition>
 
@@ -98,17 +70,20 @@
       />
     </Transition>
 
-    <footerSection v-if="isPad" />
-  </main>
+    <FooterSection v-if="isPad" />
+  </div>
+
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
-import footerSection from '@/components/footerSection.vue'
+import FooterSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
-import SettingToggle from '@/components/SettingToggle.vue'
+import ArtworkZone from '@/components/ArtworkZone.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
+import HelpDialog from '@/components/HelpDialog.vue'
+import ExamplesDialog from '@/components/ExamplesDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -125,10 +100,10 @@ const { setIsPad, setIsMobile, setLocale } = defaultStore
 
 const { t } = useI18n()
 
+const showHelp = ref(false)
 const showSettings = ref(false)
 const showPreview = ref(false)
 const previewImage = ref('')
-const previewButton = ref<HTMLButtonElement | null>(null)
 const paletteIndexMap = ref<Uint8Array | null>(null)
 const paletteBaseColors = ref<string[]>([])
 const paletteColors = ref<string[]>([])
@@ -149,12 +124,18 @@ const customUndoStack = ref<EditorSnapshot[]>([])
 const customRedoStack = ref<EditorSnapshot[]>([])
 const maxPaletteHistory = 50
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const canvas = ref<HTMLCanvasElement | null>(null)
+const artworkZone = ref<InstanceType<typeof ArtworkZone> | null>(null)
+const canvas = computed<HTMLCanvasElement | null>(() => artworkZone.value?.canvas ?? null)
+const previewButton = computed<HTMLButtonElement | null>(() => artworkZone.value?.previewButton ?? null)
+const showExamples = ref(false)
 const sourceFile = ref<File | null>(null)
+const originalImageUrl = ref('')
+const isComparing = ref(false)
+const comparisonSplit = ref(50)
+const comparisonGeometry = ref({ left: 0, top: 0, width: 0, height: 0 })
 const isProcessing = ref(false)
-const isDragging = ref(false)
 const errorMessage = ref('')
+const hasConvertedArtwork = ref(false)
 // const imageDetails = ref('')
 const reprocessDebounceMs = 250
 const conversionRetryDelayMs = 750
@@ -170,6 +151,35 @@ const status = computed(() =>
         ? { type: 'ready', label: 'status-ready' }
         : { type: 'idle', label: 'status-wait' },
 )
+
+watch(sourceFile, (file) => {
+  if (originalImageUrl.value) URL.revokeObjectURL(originalImageUrl.value)
+  originalImageUrl.value = file ? URL.createObjectURL(file) : ''
+  isComparing.value = false
+  comparisonSplit.value = 50
+})
+
+const updateComparisonGeometry = () => {
+  const target = canvas.value
+  const container = target?.parentElement
+  if (!target || !container) return
+  const imageRect = target.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+  comparisonGeometry.value = {
+    left: imageRect.left - containerRect.left,
+    top: imageRect.top - containerRect.top,
+    width: imageRect.width,
+    height: imageRect.height,
+  }
+}
+
+const toggleComparison = async () => {
+  isComparing.value = !isComparing.value
+  if (isComparing.value) {
+    await nextTick()
+    updateComparisonGeometry()
+  }
+}
 
 const {
   selectedPalette,
@@ -213,8 +223,23 @@ const persistProject = async (original: File, convertedDataUrl: string, width: n
   }
 }
 
-const openFilePicker = () => {
-  fileInput.value?.click()
+const handleSelectedFile = (file: File) => {
+  if (checkFileType(file) && checkFileSize(file)) processFile(file)
+}
+
+const loadExample = async (example: { src: string; nameKey: string; palette: string }) => {
+  showExamples.value = false
+  settings.setPalette(example.palette)
+  try {
+    const response = await fetch(example.src)
+    if (!response.ok) throw new Error('Could not load example image')
+    const blob = await response.blob()
+    const filename = example.src.split('/').pop() ?? 'pixelization-example.jpg'
+    processFile(new File([blob], filename, { type: blob.type || 'image/jpeg' }))
+  } catch (error) {
+    console.warn('Could not load example image:', error)
+    errorMessage.value = t('error-failed')
+  }
 }
 
 const openPreview = () => {
@@ -376,23 +401,6 @@ const saveEditedArtwork = async (dataUrl: string) => {
   persistEditedArtwork()
 }
 
-const onPaletteHistoryKeydown = (event: KeyboardEvent) => {
-  if (!showPreview.value || !(event.ctrlKey || event.metaKey)) return
-  const target = event.target
-  if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
-  const key = event.key.toLowerCase()
-  if (key === 'z' && event.shiftKey) {
-    event.preventDefault()
-    redoPaletteColor()
-  } else if (key === 'z') {
-    event.preventDefault()
-    undoPaletteColor()
-  } else if (key === 'y') {
-    event.preventDefault()
-    redoPaletteColor()
-  }
-}
-
 const closePreview = () => {
   showPreview.value = false
 }
@@ -437,23 +445,6 @@ const checkFileSize = (file: File | undefined) => {
   }
 }
 
-const handleFileInput = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const validType = checkFileType(input.files?.[0])
-  const validSize = checkFileSize(input.files?.[0])
-  if(validType && validSize){
-    processFile(input.files?.[0] as File)
-    input.value = ''
-  }
-}
-
-const handleDrop = (event: DragEvent) => {
-  isDragging.value = false
-  const validType = checkFileType(event.dataTransfer?.files[0])
-  const validSize = checkFileSize(event.dataTransfer?.files[0])
-  if(validType && validSize) processFile(event.dataTransfer?.files[0] as File)
-}
-
 const reprocessArtwork = () => {
   clearTimeout(reprocessTimer)
   if (sourceFile.value) {
@@ -492,6 +483,8 @@ const processFile = async(file: File, preserveOnError = false) => {
   // }
   clearTimeout(reprocessTimer)
   sourceFile.value = file
+  isComparing.value = false
+  hasConvertedArtwork.value = false
   const requestId = ++latestRequestId
   errorMessage.value = ''
   isProcessing.value = true
@@ -542,6 +535,7 @@ const processFile = async(file: File, preserveOnError = false) => {
 
     if (requestId !== latestRequestId) return
     await drawArtwork(result.data.data, result.data.width, result.data.height, requestId)
+    if (requestId === latestRequestId) hasConvertedArtwork.value = true
     await persistProject(file, result.data.data, width, height)
 
     processImagePalette(result.data)
@@ -551,6 +545,7 @@ const processFile = async(file: File, preserveOnError = false) => {
   } catch (error) {
     if (requestId !== latestRequestId) return
     console.log(error)
+    hasConvertedArtwork.value = false
     if (!preserveOnError) sourceFile.value = null
     paletteIndexMap.value = null
     paletteBaseColors.value = []
@@ -646,6 +641,7 @@ const downloadArtwork = async() => {
 const onResize = () => {
   setIsPad(window.innerWidth <= 899)
   setIsMobile(window.innerWidth <= 620)
+  if (isComparing.value) void nextTick().then(updateComparisonGeometry)
 }
 
 watch(rememberLastProject, (enabled) => {
@@ -655,7 +651,6 @@ watch(rememberLastProject, (enabled) => {
 onMounted(async () => {
   onResize()
   addEventListener('resize', onResize)
-  addEventListener('keydown', onPaletteHistoryKeydown)
 
   const locale = localStorage.getItem('locale')
 
@@ -687,6 +682,7 @@ onMounted(async () => {
         sourceFile.value = restoredFile
         try {
           await drawArtwork(convertedUrl, project.width, project.height)
+          hasConvertedArtwork.value = true
         } finally {
           URL.revokeObjectURL(convertedUrl)
         }
@@ -707,8 +703,8 @@ onMounted(async () => {
 onUnmounted(() => {
   clearTimeout(reprocessTimer)
   latestRequestId++
+  if (originalImageUrl.value) URL.revokeObjectURL(originalImageUrl.value)
   removeEventListener('resize', onResize)
-  removeEventListener('keydown', onPaletteHistoryKeydown)
 })
 </script>
 
@@ -718,225 +714,11 @@ onUnmounted(() => {
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   min-height: 100vh;
 }
-.artwork-zone {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-width: 0;
-  padding: 32px;
-  background: var(--px-ink);
-}
-.stage-meta {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 22px;
-}
-.eyebrow {
-  margin: 0;
-  color: var(--px-azure);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.stage-meta h2 {
-  margin: 7px 0 0;
-  font-size: clamp(1.45rem, 2.5vw, 2rem);
-  line-height: 1.15;
-}
-.image-details {
-  margin: 0;
-  color: var(--px-text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-.canvas-stage {
-  position: relative;
-  display: grid;
-  /* min-height: min(75vh, 720px); */
-  overflow: hidden;
-  place-items: center;
-  border: 1px solid var(--px-grid);
-  background-color: var(--px-surface);
-  background-image:
-    linear-gradient(var(--px-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
-  background-size: 8px 8px;
-  margin-bottom: 22px;
-}
-.canvas-stage.has-artwork {
-  background-image: none;
-}
-.canvas-stage.is-dragging {
-  border-color: var(--px-violet-bright);
-  box-shadow:
-    inset 0 0 0 1px var(--px-violet-bright),
-    var(--shadow-glow);
-}
-.upload-zone {
-  display: grid;
-  gap: 13px;
-  width: 100%;
-  min-height: inherit;
-  place-content: center;
-  border: 0;
-  background: color-mix(in srgb, var(--px-ink) 70%, transparent);
-  color: var(--px-text);
-  cursor: pointer;
-}
-.upload-zone strong {
-  /* font-family: var(--font-display); */
-  font-size: clamp(1rem, 2vw, 1.25rem);
-}
-.upload-zone small {
-  color: var(--px-text-muted);
-}
-.upload-icon {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  margin: auto;
-  place-items: center;
-  border: 1px solid var(--px-violet);
-  color: var(--px-violet-bright);
-  font-family: var(--font-mono);
-  font-size: 1.6rem;
-}
-.canvas-wrap {
-  position: relative;
-  display: grid;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  place-items: center;
-}
-.canvas-wrap canvas {
-  width: auto;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  cursor: pointer;
-}
-.replace-overlay {
-  position: absolute;
-  bottom: 18px;
-  left: 50%;
-  padding: 9px 12px;
-  transform: translateX(-50%);
-  border: 1px solid var(--px-grid);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--px-ink) 85%, transparent);
-  color: var(--px-text-muted);
-  font-size: 0.78rem;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  cursor: pointer;
-}
-.canvas-wrap:hover .replace-overlay,
-.replace-overlay:focus-visible {
-  opacity: 1;
-}
-.error-message {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  max-width: min(90%, 420px);
-  padding: 12px 14px;
-  border: 1px solid var(--px-danger);
-  border-radius: var(--radius-sm);
-  background: var(--px-surface);
-  color: var(--px-text);
-  font-size: 0.9rem;
-}
-button:focus-visible {
-  outline: 2px solid var(--px-azure);
-  outline-offset: 2px;
-}
-.actions{
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* margin-top: 42px; */
-  color: var(--px-text-muted);
-}
-.stage-status {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--px-text-muted);
-}
-.status-dot.ready {
-  background: var(--px-success);
-}
-.status-dot.processing {
-  background: var(--px-azure);
-  animation: pulse 1s steps(2, end) infinite;
-}
-.status-dot.error {
-  background: var(--px-danger);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .replace-overlay {
-    animation: none;
-    transition: none;
-  }
-}
-
 @media (max-width: 899px) {
-  .workspace-shell {
-    grid-template-columns: 1fr;
-  }
-  .artwork-zone {
-    padding: 24px;
-  }
-  .canvas-stage {
-    min-height: 55vh;
-  }
+  .workspace-shell { grid-template-columns: 1fr; }
 }
-@media (max-width: 620px) {
-  .artwork-zone {
-    padding: 24px 16px;
-  }
-  .stage-meta {
-    align-items: center;
-    gap: 12px;
-  }
-  .image-details {
-    white-space: normal;
-  }
-  .canvas-stage {
-    min-height: 46vh;
-  }
-  .replace-overlay {
-    opacity: 1;
-  }
-}
-
 :deep(.fade-enter-active),
-:deep(.fade-leave-active) {
-  transition: opacity 0.3s ease;
-}
-
+:deep(.fade-leave-active) { transition: opacity 0.3s ease; }
 :deep(.fade-enter-from),
-:deep(.fade-leave-to) {
-  opacity: 0;
-}
+:deep(.fade-leave-to) { opacity: 0; }
 </style>
