@@ -21,6 +21,15 @@
             @click="finishEditing">×</button>
         </div>
         <div class="preview-controls">
+          <button
+            type="button"
+            class="shortcut-help-button"
+            :aria-label="$t('preview-shortcuts-open')"
+            :aria-expanded="showShortcuts"
+            aria-controls="preview-shortcuts"
+            :title="$t('preview-shortcuts-open')"
+            @click="showShortcuts = !showShortcuts"
+          >?</button>
           <button type="button" :aria-label="$t('zoom-out')" :disabled="zoom <= MIN_ZOOM" @click="zoomAtCenter(zoom - ZOOM_STEP)">−</button>
           <output aria-live="polite">{{ Math.round(zoom * 100) }}%</output>
           <button type="button" :aria-label="$t('zoom-in')" :disabled="zoom >= MAX_ZOOM" @click="zoomAtCenter(zoom + ZOOM_STEP)">+</button>
@@ -34,6 +43,31 @@
             @click="finishEditing">×</button>
         </div>
       </header>
+      <section
+        v-show="showShortcuts"
+        id="preview-shortcuts"
+        class="shortcut-popover"
+        role="region"
+        aria-labelledby="preview-shortcuts-title"
+      >
+        <div class="shortcut-popover-header">
+          <h3 id="preview-shortcuts-title">{{ $t('preview-shortcuts-title') }}</h3>
+          <button type="button" class="shortcut-popover-close" :aria-label="$t('close')" @click="showShortcuts = false">×</button>
+        </div>
+        <h4>{{ $t('preview-shortcuts-keyboard') }}</h4>
+        <dl>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></dt><dd>{{ $t('undo') }}</dd></div>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></dt><dd>{{ $t('redo') }}</dd></div>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Y</kbd></dt><dd>{{ $t('redo') }}</dd></div>
+          <div><dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>D</kbd></dt><dd>{{ $t('deselect') }}</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>{{ $t('preview-shortcuts-close') }}</dd></div>
+        </dl>
+        <h4>{{ $t('preview-shortcuts-pointer') }}</h4>
+        <dl>
+          <div><dt>{{ $t('preview-shortcuts-wheel') }}</dt><dd>{{ $t('preview-shortcuts-zoom') }}</dd></div>
+          <div><dt>{{ $t('preview-shortcuts-drag') }}</dt><dd>{{ $t('preview-shortcuts-pan') }}</dd></div>
+        </dl>
+      </section>
       <div class="preview-workspace" :class="{ 'palette-open': showPalettePanel, 'has-palette': true }">
         <aside
           id="palette-drawer"
@@ -146,7 +180,6 @@
           </div>
         </div>
       </div>
-      <p v-if="!isMobile && !isPad" class="preview-hint">{{ $t('preview-hint') }}</p>
     </section>
   </div>
 </template>
@@ -183,7 +216,7 @@ const emit = defineEmits<{
 }>()
 
 const defaultStore = useDefaultStore()
-const { isMobile, isPad } = storeToRefs(defaultStore)
+const { isMobile } = storeToRefs(defaultStore)
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 8
@@ -197,6 +230,7 @@ const offsetX = ref(0)
 const offsetY = ref(0)
 const isPanning = ref(false)
 const showPalettePanel = ref(false)
+const showShortcuts = ref(false)
 const paletteMode = ref<'image' | 'custom'>('image')
 const tool = ref<'wand' | 'brush' | 'eyedropper' | 'hand'>('hand')
 const tolerance = ref(24)
@@ -535,7 +569,11 @@ const stopPan = (event: PointerEvent) => {
 }
 
 const onKeyDown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') emit('close')
+  if (event.key === 'Escape') {
+    if (showShortcuts.value) showShortcuts.value = false
+    else emit('close')
+    return
+  }
   if (!(event.ctrlKey || event.metaKey)) return
   const target = event.target
   if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
@@ -594,6 +632,7 @@ onUnmounted(() => {
   background: color-mix(in srgb, var(--px-ink) 82%, transparent);
 }
 .preview-dialog {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: min(100%, 1400px);
@@ -633,6 +672,29 @@ button:disabled { opacity: 0.45; cursor: default; }
   text-align: center;
 }
 .preview-controls .close-button { font-size: 1.4rem; line-height: 1; }
+.shortcut-popover {
+  position: absolute;
+  z-index: 10;
+  top: 58px;
+  right: 14px;
+  width: min(360px, calc(100vw - 48px));
+  padding: 14px;
+  border: 1px solid var(--px-grid);
+  border-radius: var(--radius-sm);
+  background: var(--px-surface-raised);
+  color: var(--px-text);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 35%);
+}
+.shortcut-popover-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shortcut-popover h3 { margin: 0; font-size: 1rem; }
+.shortcut-popover h4 { margin: 14px 0 6px; color: var(--px-text-muted); font-size: 0.76rem; text-transform: uppercase; }
+.shortcut-popover dl { display: grid; gap: 6px; margin: 0; }
+.shortcut-popover dl > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.8rem; }
+.shortcut-popover dt { display: flex; align-items: center; gap: 3px; }
+.shortcut-popover dd { margin: 0; color: var(--px-text-muted); text-align: right; }
+.shortcut-popover kbd { padding: 2px 5px; border: 1px solid var(--px-grid); border-radius: 3px; background: var(--px-surface); font: 0.75rem var(--font-mono); }
+.shortcut-popover-close { min-width: 30px; width: 30px; height: 30px; padding: 0; font-size: 1.15rem; }
+.shortcut-help-button { font-weight: 700; }
 .palette-toggle { display: none; }
 .preview-workspace {
   position: relative;
