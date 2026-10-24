@@ -540,18 +540,28 @@ const onKeyDown = (event: KeyboardEvent) => {
   const target = event.target
   if (target instanceof HTMLElement && (target.isContentEditable || target.closest('textarea, select, input:not([type="color"])'))) return
   const key = event.key.toLowerCase()
+
   if (key === 'z' && event.shiftKey && (redoImages.value.length || props.canRedo)) {
     event.preventDefault()
     event.stopPropagation()
     redoHistory()
-  } else if (key === 'y' && (redoImages.value.length || props.canRedo)) {
+  }
+
+  if (key === 'y' && (redoImages.value.length || props.canRedo)) {
     event.preventDefault()
     event.stopPropagation()
     redoHistory()
-  } else if (key === 'z' && (undoImages.value.length || props.canUndo)) {
+  }
+
+  if (key === 'z' && (undoImages.value.length || props.canUndo)) {
     event.preventDefault()
     event.stopPropagation()
     undoHistory()
+  }
+
+  if (key === 'd' && (undoImages.value.length || props.canUndo)) {
+    event.preventDefault()
+    if (selection.value !== null) clearSelection()
   }
 }
 
