@@ -1,11 +1,6 @@
 <template>
   <div>
-    <welcomeSection
-      v-if="!start"
-      @close="start = true"
-      @show-settings="(v) => showSettings = v"
-    />
-    <main class="workspace-shell" v-else>
+    <main class="workspace-shell">
       <PixelizationTools
         :has-artwork="hasArtwork"
         :is-processing="isProcessing"
@@ -32,7 +27,12 @@
             </div>
           </div>
 
-          <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
+          <div class="help-settings">
+            <button class="help-button" type="button" :aria-label="$t('help-open')" :title="$t('help-open')" @click="showHelp = true">?</button>
+
+            <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" />
+          </div>
+
         </div>
         <div
           :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
@@ -106,6 +106,9 @@
         @close="showSettings = false"
       />
     </Transition>
+    <Transition name="fade">
+      <HelpDialog v-if="showHelp" @close="showHelp = false" />
+    </Transition>
   </div>
 
 </template>
@@ -117,7 +120,7 @@ import footerSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import SettingToggle from '@/components/SettingToggle.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
-import welcomeSection from '@/components/welcomeSection.vue'
+import HelpDialog from '@/components/HelpDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -134,7 +137,7 @@ const { setIsPad, setIsMobile, setLocale } = defaultStore
 
 const { t } = useI18n()
 
-const start = ref(false)
+const showHelp = ref(false)
 const showSettings = ref(false)
 const showPreview = ref(false)
 const previewImage = ref('')
@@ -886,6 +889,25 @@ button:focus-visible {
   align-items: center;
   gap: 16px;
 }
+.help-settings{
+  display: flex;
+  gap: 12px;
+}
+.help-button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--px-grid);
+  border-radius: 8px;
+  background: var(--px-surface);
+  color: var(--px-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+.help-button:hover { border-color: var(--px-azure); color: var(--px-azure); }
 .status-dot {
   width: 7px;
   height: 7px;
