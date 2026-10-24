@@ -898,7 +898,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .examples-trigger:hover { border-color: var(--px-azure); }
-.examples-trigger-compact { margin-left: auto; }
+.examples-trigger-compact { margin-left: auto; margin-right: -13px; height: 40px }
 .upload-zone strong {
   /* font-family: var(--font-display); */
   font-size: clamp(1rem, 2vw, 1.25rem);
@@ -1089,6 +1089,7 @@ button:focus-visible {
   .canvas-stage {
     min-height: 55vh;
   }
+  .examples-trigger-compact { margin-right: unset; }
 }
 @media (max-width: 620px) {
   .artwork-zone {
