@@ -4,113 +4,34 @@
       <PixelizationTools
         :has-artwork="hasArtwork"
         :is-processing="isProcessing"
-        @choose-image="openFilePicker"
         @export-image="downloadArtwork"
         @settings-changed="reprocessArtwork"
         @settings-changed-debounced="scheduleReprocessArtwork"
         @show-settings="(v) => showSettings = v"
         @show-help="(v) => showHelp = v"
       />
-      <section class="artwork-zone" aria-labelledby="stage-title">
-        <input
-          ref="fileInput"
-          class="visually-hidden"
-          type="file"
-          accept="image/*"
-          aria-label="Choose an image to pixelize"
-          @change="handleFileInput"
-        />
-        <div class="stage-meta">
-          <div class="stage-status">
-            <div class="status-row" aria-live="polite">
-              <span :class="['status-dot', status.type]" aria-hidden="true"></span
-              ><span>{{ $t(status.label) }}</span>
-            </div>
-          </div>
-
-        <button v-if="hasArtwork" class="examples-trigger examples-trigger-compact" type="button" @click="showExamples = true">{{ $t('examples-open') }}</button>
-        <SettingToggle v-if="!isPad" @settings-changed="(v) => showSettings = v" @show-help="(v) => showHelp = v" />
-      </div>
-      <div
-        :class="['canvas-stage', { 'is-dragging': isDragging, 'has-artwork': hasArtwork }]"
-        @dragenter.prevent="isDragging = true"
-        @dragover.prevent="isDragging = true"
-        @dragleave.prevent="isDragging = false"
-        @drop.prevent="handleDrop"
-      >
-        <div v-if="!hasArtwork" class="empty-state">
-          <button class="upload-zone" type="button" @click="openFilePicker">
-            <span class="upload-icon" aria-hidden="true">+</span
-            ><strong>{{ $t("upload-hint") }}</strong
-            ><small>{{ $t("upload-type") }}</small>
-            <small>{{ $t("upload-limit", {limit: settings.sizeLimitMB}) }}</small>
-          </button>
-          <button class="examples-trigger" type="button" @click="showExamples = true">{{ $t('examples-open') }}</button>
-        </div>
-        <div v-else class="canvas-wrap">
-          <canvas ref="canvas" aria-label="Pixelized artwork" :class="{ 'is-comparing': isComparing }" @click="!isComparing && openFilePicker()"></canvas>
-          <div
-            v-if="isComparing && hasConvertedArtwork && originalImageUrl"
-            class="canvas-comparison"
-            :style="{
-              left: `${comparisonGeometry.left}px`,
-              top: `${comparisonGeometry.top}px`,
-              width: `${comparisonGeometry.width}px`,
-              height: `${comparisonGeometry.height}px`,
-              '--split': `${comparisonSplit}%`,
-            }"
-          >
-            <img class="comparison-before" :src="originalImageUrl" :alt="$t('examples-before')" />
-            <span class="comparison-label before-label">{{ $t('examples-before') }}</span>
-            <span class="comparison-label after-label">{{ $t('examples-after') }}</span>
-            <input
-              v-model.number="comparisonSplit"
-              class="comparison-slider"
-              type="range"
-              min="0"
-              max="100"
-              :aria-label="$t('compare-slider-label')"
-            />
-            <span class="comparison-divider" aria-hidden="true"></span>
-          </div>
-          <button v-if="!isComparing" class="replace-overlay" type="button" @click="openFilePicker">
-            {{ $t("upload-change") }}
-          </button>
-        </div>
-        <div v-if="isProcessing" class="processing-overlay" role="status">
-          <span class="scan-line" aria-hidden="true"></span><span>{{ $t("status-process") }}</span>
-        </div>
-        <div v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</div>
-      </div>
-      <div class="actions output" aria-label="Image actions" :style="{opacity: hasArtwork? 1 : 0, transition: 'all 0.3 ease'}">
-        <button
-          v-if="hasConvertedArtwork && !isProcessing"
-          class="button secondary"
-          type="button"
-          :aria-pressed="isComparing"
-          @click="toggleComparison"
-        >
-          {{ isComparing ? $t('compare-close') : $t('compare-open') }}
-        </button>
-        <button
-          ref="previewButton"
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="openPreview"
-        >
-          {{ $t("preview-edit") }}
-        </button>
-        <button
-          class="button secondary"
-          type="button"
-          :disabled="!hasArtwork || isProcessing"
-          @click="downloadArtwork"
-        >
-          {{ $t("download") }}
-        </button>
-      </div>
-    </section>
+      <ArtworkZone
+        ref="artworkZone"
+        :has-artwork="hasArtwork"
+        :is-pad="isPad"
+        :is-processing="isProcessing"
+        :has-converted-artwork="hasConvertedArtwork"
+        :is-comparing="isComparing"
+        :comparison-split="comparisonSplit"
+        :comparison-geometry="comparisonGeometry"
+        :original-image-url="originalImageUrl"
+        :error-message="errorMessage"
+        :size-limit-m-b="settings.sizeLimitMB"
+        :status="status"
+        @file-selected="handleSelectedFile"
+        @show-examples="showExamples = true"
+        @show-settings="showSettings = $event"
+        @show-help="showHelp = $event"
+        @toggle-comparison="toggleComparison"
+        @update:comparison-split="comparisonSplit = $event"
+        @preview="openPreview"
+        @download="downloadArtwork"
+      />
    </main>
 
     <Transition name="fade">
@@ -159,7 +80,7 @@ import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import PixelizationTools from '../components/PixelizationTools.vue'
 import FooterSection from '@/components/footerSection.vue'
 import SettingsDialog from '@/components/SettingsDialog.vue'
-import SettingToggle from '@/components/SettingToggle.vue'
+import ArtworkZone from '@/components/ArtworkZone.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
 import HelpDialog from '@/components/HelpDialog.vue'
 import ExamplesDialog from '@/components/ExamplesDialog.vue'
@@ -183,7 +104,6 @@ const showHelp = ref(false)
 const showSettings = ref(false)
 const showPreview = ref(false)
 const previewImage = ref('')
-const previewButton = ref<HTMLButtonElement | null>(null)
 const paletteIndexMap = ref<Uint8Array | null>(null)
 const paletteBaseColors = ref<string[]>([])
 const paletteColors = ref<string[]>([])
@@ -204,8 +124,9 @@ const customUndoStack = ref<EditorSnapshot[]>([])
 const customRedoStack = ref<EditorSnapshot[]>([])
 const maxPaletteHistory = 50
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const canvas = ref<HTMLCanvasElement | null>(null)
+const artworkZone = ref<InstanceType<typeof ArtworkZone> | null>(null)
+const canvas = computed<HTMLCanvasElement | null>(() => artworkZone.value?.canvas ?? null)
+const previewButton = computed<HTMLButtonElement | null>(() => artworkZone.value?.previewButton ?? null)
 const showExamples = ref(false)
 const sourceFile = ref<File | null>(null)
 const originalImageUrl = ref('')
@@ -213,7 +134,6 @@ const isComparing = ref(false)
 const comparisonSplit = ref(50)
 const comparisonGeometry = ref({ left: 0, top: 0, width: 0, height: 0 })
 const isProcessing = ref(false)
-const isDragging = ref(false)
 const errorMessage = ref('')
 const hasConvertedArtwork = ref(false)
 // const imageDetails = ref('')
@@ -303,8 +223,8 @@ const persistProject = async (original: File, convertedDataUrl: string, width: n
   }
 }
 
-const openFilePicker = () => {
-  fileInput.value?.click()
+const handleSelectedFile = (file: File) => {
+  if (checkFileType(file) && checkFileSize(file)) processFile(file)
 }
 
 const loadExample = async (example: { src: string; nameKey: string; palette: string }) => {
@@ -523,23 +443,6 @@ const checkFileSize = (file: File | undefined) => {
     errorMessage.value = t('error-size')
     return false
   }
-}
-
-const handleFileInput = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const validType = checkFileType(input.files?.[0])
-  const validSize = checkFileSize(input.files?.[0])
-  if(validType && validSize){
-    processFile(input.files?.[0] as File)
-    input.value = ''
-  }
-}
-
-const handleDrop = (event: DragEvent) => {
-  isDragging.value = false
-  const validType = checkFileType(event.dataTransfer?.files[0])
-  const validSize = checkFileSize(event.dataTransfer?.files[0])
-  if(validType && validSize) processFile(event.dataTransfer?.files[0] as File)
 }
 
 const reprocessArtwork = () => {
@@ -811,312 +714,11 @@ onUnmounted(() => {
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   min-height: 100vh;
 }
-.artwork-zone {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-width: 0;
-  padding: 32px;
-  background: var(--px-ink);
-}
-.stage-meta {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 22px;
-}
-.eyebrow {
-  margin: 0;
-  color: var(--px-azure);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.stage-meta h2 {
-  margin: 7px 0 0;
-  font-size: clamp(1.45rem, 2.5vw, 2rem);
-  line-height: 1.15;
-}
-.image-details {
-  margin: 0;
-  color: var(--px-text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-.canvas-stage {
-  position: relative;
-  display: grid;
-  /* min-height: min(75vh, 720px); */
-  overflow: hidden;
-  place-items: center;
-  border: 1px solid var(--px-grid);
-  background-color: var(--px-surface);
-  background-image:
-    linear-gradient(var(--px-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--px-grid) 1px, transparent 1px);
-  background-size: 8px 8px;
-  margin-bottom: 22px;
-}
-.canvas-stage.has-artwork {
-  background-image: none;
-}
-.canvas-stage.is-dragging {
-  border-color: var(--px-violet-bright);
-  box-shadow:
-    inset 0 0 0 1px var(--px-violet-bright),
-    var(--shadow-glow);
-}
-.upload-zone {
-  display: grid;
-  gap: 13px;
-  width: 100%;
-  min-height: inherit;
-  place-content: center;
-  border: 0;
-  background: color-mix(in srgb, var(--px-ink) 70%, transparent);
-  color: var(--px-text);
-  cursor: pointer;
-}
-.empty-state {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: inherit;
-  padding: 20px;
-}
-.examples-trigger {
-  padding: 8px 12px;
-  border: 1px solid var(--px-grid);
-  border-radius: var(--radius-sm);
-  background: var(--px-surface);
-  color: var(--px-azure);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.examples-trigger:hover { border-color: var(--px-azure); }
-.examples-trigger-compact { margin-left: auto; margin-right: -13px; height: 40px }
-.upload-zone strong {
-  /* font-family: var(--font-display); */
-  font-size: clamp(1rem, 2vw, 1.25rem);
-}
-.upload-zone small {
-  color: var(--px-text-muted);
-}
-.upload-icon {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  margin: auto;
-  place-items: center;
-  border: 1px solid var(--px-violet);
-  color: var(--px-violet-bright);
-  font-family: var(--font-mono);
-  font-size: 1.6rem;
-}
-.canvas-wrap {
-  position: relative;
-  display: grid;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  place-items: center;
-}
-.canvas-wrap canvas {
-  width: auto;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  cursor: pointer;
-}
-.canvas-wrap canvas.is-comparing { cursor: default; }
-.canvas-comparison {
-  position: absolute;
-  overflow: hidden;
-  pointer-events: none;
-}
-.comparison-before {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  clip-path: inset(0 calc(100% - var(--split)) 0 0);
-}
-.comparison-label {
-  position: absolute;
-  z-index: 2;
-  top: 12px;
-  padding: 5px 8px;
-  border-radius: 4px;
-  background: rgb(0 0 0 / 72%);
-  color: white;
-  font-size: 0.75rem;
-}
-.before-label { left: 12px; }
-.after-label { right: 12px; }
-.comparison-slider {
-  position: absolute;
-  z-index: 4;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  appearance: none;
-  background: transparent;
-  pointer-events: auto;
-  cursor: ew-resize;
-}
-.comparison-slider::-webkit-slider-thumb {
-  width: 4px;
-  height: 100%;
-  appearance: none;
-  background: var(--px-azure);
-  box-shadow: 0 0 0 2px rgb(0 0 0 / 35%);
-}
-.comparison-slider::-moz-range-thumb {
-  width: 4px;
-  height: 100%;
-  border: 0;
-  border-radius: 0;
-  background: var(--px-azure);
-  box-shadow: 0 0 0 2px rgb(0 0 0 / 35%);
-}
-.comparison-divider {
-  position: absolute;
-  z-index: 3;
-  top: 0;
-  bottom: 0;
-  left: var(--split);
-  width: 2px;
-  transform: translateX(-50%);
-  background: var(--px-azure);
-  pointer-events: none;
-}
-.replace-overlay {
-  position: absolute;
-  bottom: 18px;
-  left: 50%;
-  padding: 9px 12px;
-  transform: translateX(-50%);
-  border: 1px solid var(--px-grid);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--px-ink) 85%, transparent);
-  color: var(--px-text-muted);
-  font-size: 0.78rem;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  cursor: pointer;
-}
-.canvas-wrap:hover .replace-overlay,
-.replace-overlay:focus-visible {
-  opacity: 1;
-}
-.error-message {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  max-width: min(90%, 420px);
-  padding: 12px 14px;
-  border: 1px solid var(--px-danger);
-  border-radius: var(--radius-sm);
-  background: var(--px-surface);
-  color: var(--px-text);
-  font-size: 0.9rem;
-}
-button:focus-visible {
-  outline: 2px solid var(--px-azure);
-  outline-offset: 2px;
-}
-.actions{
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-}
-
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* margin-top: 42px; */
-  color: var(--px-text-muted);
-}
-.stage-status {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--px-text-muted);
-}
-.status-dot.ready {
-  background: var(--px-success);
-}
-.status-dot.processing {
-  background: var(--px-azure);
-  animation: pulse 1s steps(2, end) infinite;
-}
-.status-dot.error {
-  background: var(--px-danger);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .replace-overlay {
-    animation: none;
-    transition: none;
-  }
-}
-
 @media (max-width: 899px) {
-  .workspace-shell {
-    grid-template-columns: 1fr;
-  }
-  .artwork-zone {
-    padding: 24px;
-  }
-  .canvas-stage {
-    min-height: 55vh;
-  }
-  .examples-trigger-compact { margin-right: unset; }
+  .workspace-shell { grid-template-columns: 1fr; }
 }
-@media (max-width: 620px) {
-  .artwork-zone {
-    padding: 24px 16px;
-  }
-  .stage-meta {
-    align-items: center;
-    gap: 12px;
-  }
-  .image-details {
-    white-space: normal;
-  }
-  .canvas-stage {
-    min-height: 46vh;
-  }
-  .replace-overlay {
-    opacity: 1;
-  }
-}
-
 :deep(.fade-enter-active),
-:deep(.fade-leave-active) {
-  transition: opacity 0.3s ease;
-}
-
+:deep(.fade-leave-active) { transition: opacity 0.3s ease; }
 :deep(.fade-enter-from),
-:deep(.fade-leave-to) {
-  opacity: 0;
-}
+:deep(.fade-leave-to) { opacity: 0; }
 </style>
