@@ -126,7 +126,7 @@ const deleteSavedProject = async () => {
   background: rgb(0 0 0 / 72%);
 }
 .settings-dialog {
-  width: min(100%, 380px);
+  width: min(100%, 450px);
   padding: 22px;
 }
 .settings-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
