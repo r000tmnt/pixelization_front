@@ -147,6 +147,8 @@
       v-if="!isPad"
       class="tool-footer"
       :style="{padding: `${checkViewPort? 'unset' : '30px 0 0 0'}`}"
+      @show-help="emit('show-help', true)"
+      @show-privacy="emit('show-privacy', true)"
     />
   </aside>
 </template>
@@ -169,7 +171,8 @@ const emit = defineEmits<{
   'settings-changed': [],
   'settings-changed-debounced': [],
   'show-settings': [value: boolean],
-  'show-help': [value: boolean]
+  'show-help': [value: boolean],
+  'show-privacy': [value: boolean]
 }>()
 
 const settings = usePixelizationStore()
