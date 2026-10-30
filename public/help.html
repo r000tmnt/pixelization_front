@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PIXELIZATION 使用說明：了解如何選擇像素大小與調色盤、上傳圖片、編輯並下載點陣作品。" />
+    <title>使用說明｜PIXELIZATION</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, "Noto Sans TC", sans-serif; background: #171820; color: #f0eff7; }
+      body { margin: 0; padding: 32px 20px; }
+      main { width: min(100%, 820px); margin: 0 auto; }
+      a { color: #83c8ff; }
+      h1 { margin: 28px 0 12px; font-size: clamp(1.8rem, 5vw, 2.6rem); }
+      h2 { margin: 32px 0 12px; font-size: 1.3rem; }
+      p { color: #c3c2ce; line-height: 1.7; }
+      .step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .85fr); align-items: center; gap: 24px; padding: 22px 0; border-top: 1px solid #353640; }
+      .step h3 { margin: 0 0 8px; font-size: 1.05rem; }
+      .step p { margin: 0; }
+      .step img { display: block; width: 100%; max-height: 250px; object-fit: contain; border: 1px solid #353640; border-radius: 10px; }
+      .final-step { grid-template-columns: 1fr; }
+      .return-link { display: inline-block; margin: 20px 0 40px; padding: 10px 14px; border: 1px solid #535460; border-radius: 8px; color: inherit; text-decoration: none; }
+      footer { border-top: 1px solid #353640; padding-top: 18px; color: #aaa9b6; font-size: .85rem; text-align: center; }
+      @media (max-width: 600px) { .step { grid-template-columns: 1fr; gap: 12px; } .step img { max-height: 200px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/">← 返回圖片點陣化工具</a>
+      <h1>什麼是 PIXELIZATION？</h1>
+      <p>PIXELIZATION 是一款在瀏覽器中使用的圖片點陣化工具。你可以選擇圖片、調整像素效果與色彩，再下載完成的作品。</p>
+      <h2>使用方式</h2>
+
+      <section class="step">
+        <div>
+          <h3>1. 選擇像素大小與調色盤</h3>
+          <p>像素大小會影響畫面的細節；調色盤則決定點陣圖片使用哪些顏色。你可以從預設調色盤開始，再依喜好調整效果。</p>
+        </div>
+        <img src="/scrn_shot/aside.png" alt="像素大小與調色盤控制項" />
+      </section>
+
+      <section class="step">
+        <div>
+          <h3>2. 上傳圖片</h3>
+          <p>選擇圖片檔案，或將圖片拖曳到工作區。工具會在頁面中顯示圖片，供你調整點陣效果。</p>
+        </div>
+        <img src="/scrn_shot/upload.png" alt="圖片上傳區" />
+      </section>
+
+      <section class="step">
+        <div>
+          <h3>3. 調整與編輯</h3>
+          <p>微調點陣化設定，也可以開啟編輯模式，使用魔術棒、筆刷等工具手動修改作品。</p>
+        </div>
+        <img src="/scrn_shot/edit.png" alt="點陣圖編輯工具" />
+      </section>
+
+      <section class="step final-step">
+        <div>
+          <h3>4. 下載作品</h3>
+          <p>完成調整後，選擇「下載」即可將點陣作品儲存到你的裝置。</p>
+        </div>
+      </section>
+
+      <a class="return-link" href="/">開始使用 PIXELIZATION</a>
+      <footer><a href="/help.html">使用說明</a> · <a href="/privacy.html">隱私權政策</a><br />©2026 ParkCorner All Rights Reserved.</footer>
+    </main>
+  </body>
+</html>
