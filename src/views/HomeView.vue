@@ -9,6 +9,7 @@
         @settings-changed-debounced="scheduleReprocessArtwork"
         @show-settings="(v) => showSettings = v"
         @show-help="(v) => showHelp = v"
+        @show-privacy="(v) => showPrivacy = v"
       />
       <ArtworkZone
         ref="artworkZone"
@@ -45,6 +46,10 @@
     </Transition>
 
     <Transition name="fade">
+      <PrivacyDialog v-if="showPrivacy" @close="showPrivacy = false" />
+    </Transition>
+
+    <Transition name="fade">
       <ExamplesDialog
         v-if="showExamples"
         @close="showExamples = false"
@@ -70,7 +75,11 @@
       />
     </Transition>
 
-    <FooterSection v-if="isPad" />
+    <FooterSection
+      v-if="isPad"
+      @show-help="showHelp = true"
+      @show-privacy="showPrivacy = true"
+    />
   </div>
 
 </template>
@@ -83,6 +92,7 @@ import SettingsDialog from '@/components/SettingsDialog.vue'
 import ArtworkZone from '@/components/ArtworkZone.vue'
 import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
 import HelpDialog from '@/components/HelpDialog.vue'
+import PrivacyDialog from '@/components/PrivacyDialog.vue'
 import ExamplesDialog from '@/components/ExamplesDialog.vue'
 
 import pixelApi from '../api/pixel'
@@ -101,6 +111,7 @@ const { setIsPad, setIsMobile, setLocale } = defaultStore
 const { t } = useI18n()
 
 const showHelp = ref(false)
+const showPrivacy = ref(false)
 const showSettings = ref(false)
 const showPreview = ref(false)
 const previewImage = ref('')
@@ -657,6 +668,8 @@ onMounted(async () => {
   if(locale){
     setLocale(locale)
   }
+
+  settings.setRememberLastProject(localStorage.getItem('rememberLastProject') === 'true')
 
   if (rememberLastProject.value) {
     try {

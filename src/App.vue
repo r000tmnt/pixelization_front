@@ -6,12 +6,12 @@
   import { useDefaultStore } from './stores/default';
   import { storeToRefs } from 'pinia';
   import { useI18n } from 'vue-i18n'
-  import { watch, computed } from 'vue'
-  import { useSeoMeta } from '@unhead/vue';
+  import { watch, computed, onMounted } from 'vue'
+  import { useHead, useSeoMeta } from '@unhead/vue';
 
   const defaultStore = useDefaultStore()
 
-  const { setScrollTop } = defaultStore
+  const { setLocale, setReadableFont, setTheme } = defaultStore
   const { lang, readableFont, theme } = storeToRefs(defaultStore)
 
   const { locale, t } = useI18n()
@@ -21,15 +21,14 @@
     ? 'var(--font-ui)'
     : 'Cubic_11' )
 
-  // const font = computed(() => readableFont.value
-  //   ? 'var(--font-ui)'
-  //   : lang.value !== 'us' ? 'BoutiqueBitmap9x9' : 'Pixelify Sans')
-
   const pageTitle = computed(() => t('title-html'))
 
-  watch(theme, (value) => {
-    document.documentElement.dataset.theme = value
-  }, { immediate: true })
+  useHead({
+    htmlAttrs: {
+      lang: computed(() => lang.value === 'tw' ? 'zh-Hant' : lang.value === 'jp' ? 'ja' : 'en'),
+      'data-theme': theme,
+    },
+  })
 
   useSeoMeta({
     title: pageTitle,
@@ -39,18 +38,19 @@
     ogType: 'website',
   })
 
-  const onScroll = () => {
-    // console.log('scroll', window.scrollY)
-    setScrollTop(window.scrollY)
-  }
-
-  addEventListener('scroll', onScroll)
+  onMounted(() => {
+    const storedLocale = localStorage.getItem('locale')
+    const storedFont = localStorage.getItem('readableFont')
+    const storedTheme = localStorage.getItem('theme')
+    if (storedLocale) setLocale(storedLocale)
+    if (storedFont !== null) setReadableFont(storedFont === 'true')
+    if (storedTheme) setTheme(storedTheme)
+  })
 
   watch(() => lang.value, (newLang) => {
     if(newLang){
       locale.value = newLang
     }
-
   })
 </script>
 

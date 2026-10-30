@@ -5,15 +5,18 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   plugins: [
     vue(),
-    vueDevTools(),
+    ...(command === 'serve' && mode !== 'prerender' ? [vueDevTools()] : []),
   ],
   base: '/',
+  build: {
+    cssCodeSplit: false,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-})
+}))
