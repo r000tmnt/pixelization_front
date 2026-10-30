@@ -12,7 +12,7 @@ const messages = {
 
 export const list = ['us', 'tw', 'jp']
 
-export const i18n = createI18n({
+export const createLocaleInstance = () => createI18n({
   locale: 'us',
   legacy: false,
   allowComposition: true,

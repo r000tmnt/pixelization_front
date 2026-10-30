@@ -2,22 +2,13 @@ import { defineStore } from 'pinia'
 
 export const useDefaultStore = defineStore('default', {
   state: () => ({
-    scrollTop: 0,
     isPad: false,
     isMobile: false,
-    lang: localStorage.getItem('locale') || 'us',
-    readableFont: localStorage.getItem('readableFont') === 'true',
-    theme: localStorage.getItem('theme') || 'violet'
+    lang: 'us',
+    readableFont: false,
+    theme: 'violet'
   }),
-  getters: {
-    activeScrollTop: (state) => {
-      return state.scrollTop
-    }
-  },
   actions: {
-    setScrollTop (scrollTop: number) {
-      this.scrollTop = scrollTop
-    },
     setIsPad (isPad: boolean) {
       this.isPad = isPad
     },
@@ -26,15 +17,15 @@ export const useDefaultStore = defineStore('default', {
     },
     setLocale (id: string) {
       this.lang = id
-      localStorage.setItem('locale', id)
+      if (typeof localStorage !== 'undefined') localStorage.setItem('locale', id)
     },
     setReadableFont (enabled: boolean) {
       this.readableFont = enabled
-      localStorage.setItem('readableFont', String(enabled))
+      if (typeof localStorage !== 'undefined') localStorage.setItem('readableFont', String(enabled))
     },
     setTheme (theme: string) {
       this.theme = theme
-      localStorage.setItem('theme', theme)
+      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', theme)
     },
     setDisplayLang (locale: string) {
         switch(locale){

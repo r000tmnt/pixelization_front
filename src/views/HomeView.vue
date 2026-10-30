@@ -669,6 +669,8 @@ onMounted(async () => {
     setLocale(locale)
   }
 
+  settings.setRememberLastProject(localStorage.getItem('rememberLastProject') === 'true')
+
   if (rememberLastProject.value) {
     try {
       const project = await getRecentProject()

@@ -193,7 +193,7 @@ const {
 const visiblePalettes = computed(() => palettes.value.filter((palette) => palette.id !== 'custom'))
 
 const checkViewPort = computed(() => {
-  if(selectedPalette.value !== 'original' && window.innerHeight < 800){
+  if(selectedPalette.value !== 'original' && typeof window !== 'undefined' && window.innerHeight < 800){
     return false
   }
 

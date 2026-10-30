@@ -64,7 +64,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     erodeStrength: 1,
     contrastStrength: 2,
     sizeLimitMB: 5,
-    rememberLastProject: localStorage.getItem('rememberLastProject') === 'true',
+    rememberLastProject: false,
   }),
   // getters: {
   //   activePalette: (state) =>
@@ -88,7 +88,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     },
     setRememberLastProject(enabled: boolean) {
       this.rememberLastProject = enabled
-      localStorage.setItem('rememberLastProject', String(enabled))
+      if (typeof localStorage !== 'undefined') localStorage.setItem('rememberLastProject', String(enabled))
     },
     setDitherStyle(style: string) {
       this.selectedStyle = style

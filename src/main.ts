@@ -1,19 +1,10 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
-import { i18n } from './locale/export.ts'
+import { createWebHistory } from 'vue-router'
+import { createApplication } from './appFactory'
 
 import './app.css'
 
-import App from './App.vue'
-import router from './router'
-
-const app = createApp(App)
 const head = createHead()
+const { app, router } = createApplication(createWebHistory(import.meta.env.BASE_URL), head)
 
-app.use(createPinia())
-app.use(router)
-app.use(i18n)
-app.use(head)
-
-app.mount('#app')
+router.isReady().then(() => app.mount('#app'))
