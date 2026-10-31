@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { createServer } from 'vite'
 import { createMemoryHistory } from 'vue-router'
 import { renderToString } from 'vue/server-renderer'
-import { createHead, renderSSRHead } from '@unhead/vue/server'
+import { createHead } from '@unhead/vue/server'
 
 const root = process.cwd()
 const outputDirectory = resolve(root, 'dist')
@@ -32,7 +32,7 @@ try {
     await router.isReady()
 
     const appHtml = await renderToString(app)
-    const { htmlAttrs, headTags, bodyTags, bodyTagsOpen } = await renderSSRHead(head)
+    const { htmlAttrs, headTags, bodyTags, bodyTagsOpen } = head.render()
     let html = template
       .replace(/<html\b[^>]*>/i, `<html ${htmlAttrs}>`)
       .replace(/<title>[\s\S]*?<\/title>/i, '')
@@ -40,6 +40,13 @@ try {
       .replace(/<meta\s+property="og:(?:title|description|type)"[^>]*>/gi, '')
       .replace('</head>', `${headTags}\n  </head>`)
       .replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)
+
+    if (page.route !== '/') {
+      html = html.replace(
+        /\s*<script\b(?=[^>]*\bid="(?:google-adsense|google-analytics-loader|google-analytics-config)")[^>]*>[\s\S]*?<\/script>/gi,
+        '',
+      )
+    }
 
     if (!html.includes(`<div id="app">${appHtml}</div>`)) {
       throw new Error(`Could not insert rendered app markup for ${page.route}`)
