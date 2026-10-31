@@ -7,7 +7,9 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => ({
   plugins: [
-    vue(),
+    // Keep scoped-style IDs identical between the prerender server and the
+    // production client build so SSR markup matches the emitted CSS selectors.
+    vue({ features: { componentIdGenerator: 'filepath' } }),
     ...(command === 'serve' && mode !== 'prerender' ? [vueDevTools()] : []),
   ],
   base: '/',
