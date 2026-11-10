@@ -38,9 +38,11 @@
     >
       <div v-if="!hasArtwork" class="empty-state">
         <button class="upload-zone" type="button" @click="openFilePicker">
-          <span class="upload-icon" aria-hidden="true">+</span
-          ><strong>{{ $t('upload-hint') }}</strong> <small>{{ $t('upload-type') }}</small
-          ><small>{{ $t('upload-limit', { limit: sizeLimitMB }) }}</small>
+          <span class="upload-icon" aria-hidden="true">+</span>
+          <strong>{{ $t('upload-hint') }}</strong>
+          <small>{{ $t('upload-type') }}</small>
+          <small>{{ $t('upload-limit', { limit: sizeLimitMB }) }}</small>
+          <small>{{ $t('upload-dimension-limit', { limit: formattedDimensionLimit }) }}</small>
         </button>
         <button class="examples-trigger" type="button" @click="$emit('show-examples')">
           {{ $t('examples-open') }}
@@ -112,7 +114,7 @@
         :disabled="!hasArtwork || isProcessing"
         @click="$emit('download')"
       >
-        {{ $t('download') }}
+        {{ $t('export') }}
       </button>
     </div>
   </section>
@@ -133,8 +135,13 @@ const props = defineProps<{
   originalImageUrl: string
   errorMessage: string
   sizeLimitMB: number
+  dimensionLimit?: number
   status: { type: string; label: string }
 }>()
+
+const formattedDimensionLimit = computed(() =>
+  String(props.dimensionLimit ?? 4000).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+)
 const emit = defineEmits<{
   (event: 'file-selected', file: File): void
   (event: 'show-examples' | 'toggle-comparison' | 'preview' | 'download'): void

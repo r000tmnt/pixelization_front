@@ -1,5 +1,8 @@
 <template>
   <footer>
+    <div class="footer-kofi">
+      <KofiWidget />
+    </div>
     <nav :aria-label="$t('footer-navigation')">
       <a href="/help.html" @click.prevent="emit('show-help')">{{ $t('footer-help') }}</a>
       <span aria-hidden="true"> · </span>
@@ -11,6 +14,8 @@
 </template>
 
 <script setup lang="ts">
+import KofiWidget from '@/components/KofiWidget.vue'
+
 const emit = defineEmits<{
   'show-help': []
   'show-privacy': []
@@ -23,6 +28,9 @@ const emit = defineEmits<{
     font-size: 12px;
     text-align: center;
     /* padding: 30px 0; */
+  }
+  .footer-kofi {
+    margin-bottom: 12px;
   }
   nav { margin-bottom: 8px; }
   nav a { color: inherit; }

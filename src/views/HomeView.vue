@@ -4,7 +4,7 @@
       <PixelizationTools
         :has-artwork="hasArtwork"
         :is-processing="isProcessing"
-        @export-image="downloadArtwork"
+        @export-image="openExportDialog"
         @settings-changed="reprocessArtwork"
         @settings-changed-debounced="scheduleReprocessArtwork"
         @show-settings="(v) => showSettings = v"
@@ -23,6 +23,7 @@
         :original-image-url="originalImageUrl"
         :error-message="errorMessage"
         :size-limit-m-b="settings.sizeLimitMB"
+        :dimension-limit="settings.dimensionLimit"
         :status="status"
         @file-selected="handleSelectedFile"
         @show-examples="showExamples = true"
@@ -31,7 +32,7 @@
         @toggle-comparison="toggleComparison"
         @update:comparison-split="comparisonSplit = $event"
         @preview="openPreview"
-        @download="downloadArtwork"
+        @download="openExportDialog"
       />
    </main>
 
@@ -75,6 +76,16 @@
       />
     </Transition>
 
+    <Transition name="fade">
+      <ExportDialog
+        v-if="showExportDialog && canvas"
+        :width="canvas.width"
+        :height="canvas.height"
+        @close="showExportDialog = false"
+        @export="downloadArtworkWithScale"
+      />
+    </Transition>
+
     <FooterSection
       v-if="isPad"
       @show-help="showHelp = true"
@@ -94,6 +105,7 @@ import ImagePreviewDialog from '@/components/ImagePreviewDialog.vue'
 import HelpDialog from '@/components/HelpDialog.vue'
 import PrivacyDialog from '@/components/PrivacyDialog.vue'
 import ExamplesDialog from '@/components/ExamplesDialog.vue'
+import ExportDialog from '@/components/ExportDialog.vue'
 
 import pixelApi from '../api/pixel'
 import { storeToRefs } from 'pinia'
@@ -101,6 +113,7 @@ import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts'
 import { useI18n } from 'vue-i18n'
 import { getRecentProject, saveRecentProject } from '@/storage/recentProject'
+import { downscaleImageIfNeeded } from '@/utils/imageProcess'
 
 const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
@@ -114,6 +127,7 @@ const showHelp = ref(false)
 const showPrivacy = ref(false)
 const showSettings = ref(false)
 const showPreview = ref(false)
+const showExportDialog = ref(false)
 const previewImage = ref('')
 const paletteIndexMap = ref<Uint8Array | null>(null)
 const paletteBaseColors = ref<string[]>([])
@@ -234,8 +248,29 @@ const persistProject = async (original: File, convertedDataUrl: string, width: n
   }
 }
 
-const handleSelectedFile = (file: File) => {
-  if (checkFileType(file) && checkFileSize(file)) processFile(file)
+const handleSelectedFile = async (file: File) => {
+  if (!checkFileType(file)) return
+
+  // Prevent memory spikes from absurdly massive raw files before decoding (e.g. > 25MB)
+  const rawCeilingMb = Math.max(settings.sizeLimitMB * 5, 25)
+  if (file.size > rawCeilingMb * 1024 * 1024) {
+    errorMessage.value = t('error-size')
+    return
+  }
+
+  let fileToProcess = file
+  try {
+    const result = await downscaleImageIfNeeded(file, settings.dimensionLimit)
+    fileToProcess = result.file
+  } catch (error) {
+    console.warn('Image dimension processing failed:', error)
+    errorMessage.value = t('error-dimension', { limit: settings.dimensionLimit })
+    return
+  }
+
+  if (checkFileSize(fileToProcess)) {
+    processFile(fileToProcess)
+  }
 }
 
 const loadExample = async (example: { src: string; nameKey: string; palette: string }) => {
@@ -618,35 +653,59 @@ const drawArtwork = async(dataUrl: string, width: number, height: number, reques
   context.drawImage(image, 0, 0, width, height)
 }
 
-const downloadArtwork = async() => {
+const openExportDialog = () => {
+  if (!canvas.value || isProcessing.value) return
+  showExportDialog.value = true
+}
+
+const downloadArtworkWithScale = async (scale: number = 1) => {
   const target = canvas.value
   if (!target) return
 
-  console.log(navigator.platform);
+  const exportCanvas = document.createElement('canvas')
+  exportCanvas.width = target.width * scale
+  exportCanvas.height = target.height * scale
 
-  const isApple = /iPad|iPhone/.test(navigator.platform) || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+  const context = exportCanvas.getContext('2d')
+  if (!context) throw new Error('Canvas context unavailable')
 
-  if(isApple){
+  // Keep pixel edges crisp via nearest-neighbor rendering
+  context.imageSmoothingEnabled = false
+  context.drawImage(target, 0, 0, exportCanvas.width, exportCanvas.height)
+
+  const isApple =
+    /iPad|iPhone/.test(navigator.platform) ||
+    (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
+
+  const filename = scale === 1 ? 'pixelization-artwork.png' : `pixelization-artwork-${scale}x.png`
+
+  if (isApple) {
     const blob = await new Promise<Blob>((resolve, reject) => {
-      target.toBlob((result) => result ? resolve(result) : reject(new Error('Failed to create image blob')), 'image/png')
+      exportCanvas.toBlob(
+        (result) =>
+          result ? resolve(result) : reject(new Error('Failed to create image blob')),
+        'image/png',
+      )
     })
-    const file = new File([blob], 'pixelization-artwork.png', { type: 'image/png' });
+    const file = new File([blob], filename, { type: 'image/png' })
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-          await navigator.share({ files: [file], title: 'Canvas Screenshot' });
-      }
-      catch (e) {
+        await navigator.share({ files: [file], title: 'Pixelization Artwork' })
+      } catch (e) {
         console.log(e)
-          /* 使用者取消 */
+        /* User cancelled */
       }
+      showExportDialog.value = false
+      return
     }
-  }else{
-    const link = document.createElement('a')
-    link.download = 'pixelization-artwork.png'
-    link.href = target.toDataURL('image/png')
-    link.click()
   }
+
+  const link = document.createElement('a')
+  link.download = filename
+  link.href = exportCanvas.toDataURL('image/png')
+  link.click()
+  showExportDialog.value = false
 }
 
 const onResize = () => {
