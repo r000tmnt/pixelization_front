@@ -64,6 +64,7 @@ export const usePixelizationStore = defineStore('pixelization', {
     erodeStrength: 1,
     contrastStrength: 2,
     sizeLimitMB: 5,
+    dimensionLimit: 4000,
     rememberLastProject: false,
   }),
   // getters: {
