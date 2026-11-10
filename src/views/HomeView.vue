@@ -23,6 +23,7 @@
         :original-image-url="originalImageUrl"
         :error-message="errorMessage"
         :size-limit-m-b="settings.sizeLimitMB"
+        :dimension-limit="settings.dimensionLimit"
         :status="status"
         @file-selected="handleSelectedFile"
         @show-examples="showExamples = true"
@@ -101,6 +102,7 @@ import { usePixelizationStore } from '../stores/pixelization'
 import { useDefaultStore } from '@/stores/default.ts'
 import { useI18n } from 'vue-i18n'
 import { getRecentProject, saveRecentProject } from '@/storage/recentProject'
+import { downscaleImageIfNeeded } from '@/utils/imageProcess'
 
 const settings = usePixelizationStore()
 const defaultStore = useDefaultStore()
@@ -234,8 +236,29 @@ const persistProject = async (original: File, convertedDataUrl: string, width: n
   }
 }
 
-const handleSelectedFile = (file: File) => {
-  if (checkFileType(file) && checkFileSize(file)) processFile(file)
+const handleSelectedFile = async (file: File) => {
+  if (!checkFileType(file)) return
+
+  // Prevent memory spikes from absurdly massive raw files before decoding (e.g. > 25MB)
+  const rawCeilingMb = Math.max(settings.sizeLimitMB * 5, 25)
+  if (file.size > rawCeilingMb * 1024 * 1024) {
+    errorMessage.value = t('error-size')
+    return
+  }
+
+  let fileToProcess = file
+  try {
+    const result = await downscaleImageIfNeeded(file, settings.dimensionLimit)
+    fileToProcess = result.file
+  } catch (error) {
+    console.warn('Image dimension processing failed:', error)
+    errorMessage.value = t('error-dimension', { limit: settings.dimensionLimit })
+    return
+  }
+
+  if (checkFileSize(fileToProcess)) {
+    processFile(fileToProcess)
+  }
 }
 
 const loadExample = async (example: { src: string; nameKey: string; palette: string }) => {
