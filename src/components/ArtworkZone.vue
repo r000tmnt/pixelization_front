@@ -114,7 +114,7 @@
         :disabled="!hasArtwork || isProcessing"
         @click="$emit('download')"
       >
-        {{ $t('download') }}
+        {{ $t('export') }}
       </button>
     </div>
   </section>
