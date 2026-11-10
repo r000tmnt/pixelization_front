@@ -21,17 +21,6 @@
     <section>
       <h3>{{ t('privacy-cookie-title') }}</h3>
       <p>{{ t('privacy-cookie-body') }}</p>
-      <p>
-        {{ t('privacy-ads-settings-copy') }}
-        <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer">{{ t('privacy-google-settings-link') }}</a>
-        {{ t('privacy-aboutads-copy') }}
-        <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer">{{ t('privacy-aboutads-link') }}</a>
-        {{ t('privacy-after-aboutads-copy') }}
-      </p>
-      <p>
-        {{ t('privacy-google-data-copy') }}
-        <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">{{ t('privacy-google-data-link') }}</a>.
-      </p>
     </section>
 
     <section>
